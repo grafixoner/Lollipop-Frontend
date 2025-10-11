@@ -5,7 +5,7 @@
 <meta content="width=device-width, minimum-scale=1.0, maximum-scale = 1.0, user-scalable = no" name="viewport">
 <link rel="stylesheet" href="https://unpkg.com/flowbite@1.4.2/dist/flowbite.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/duyplus/fontawesome-pro/css/all.min.css" />
+<link rel="stylesheet" href="./css/fontawesome/css/all.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
 <link rel="stylesheet" href="https://unpkg.com/flickity@2.3.0/dist/flickity.min.css">
@@ -96,7 +96,7 @@ border-radius: unset;
 <body class="indie ">
     <div class="sunburst blueberry">
 
-        <img class="m-auto w-36 z-10 relative mt-20" src="images/truck.png">
+        <img class="m-auto w-36 z-10 relative mt-20" src="/images/logo_lollipop.png">
 <div class="z-10 loading  rounded-2xl p-2 text-center text-4xl text-gray-700">
     <div class="w-80 command text-xl lg:text-2xl">Connecting to lollipop<span class="spin">🍦</span> </div>
 </div>
@@ -158,7 +158,7 @@ border-radius: unset;
 
 
 <script src="https://icecreamtruck.io/js/icecreamtruck.js"></script>
-<script src="/js/schema.js"></script>
+<script src="/js/lollipop_schema.js"></script>
 <script src="/display/js/display.js"></script>
 
 
@@ -167,7 +167,7 @@ border-radius: unset;
 $(document).ready(function(){ 
     lollipop.init(); 
 
-    $('.editlink').attr("href", lollipop.baseurl+'/build.html?t='+ window.location.pathname.replace(/\//, ''));
+    $('.editlink').attr("href", lollipop.baseurl+'/build.html?t='+ lollipop.currentToken);
   });
 function claim(e){
 

@@ -99,8 +99,8 @@
             window.location.href = "https://lollipop.gg/build.html?t="+ lollipop.currentToken;
             
           }else if( window !== window.parent && this.iframe == true) {
-              $('.command').html('<span class="spin">🍭</span>Please complete setup to the right.<br><br> or try to <a href="#" onClick="window.location.reload()">Reload</a>');
-              // window.location.reload()
+              // $('.command').html('<span class="spin">🍭</span>Please complete setup to the right.<br><br> or try to <a href="#" onClick="window.location.reload()">Reload</a>');
+              window.location.reload()
           }else{
             
            $('.command').html('<span class="spin"></span> Create your Web3 Identity, curate your Digital Collectibles and engage with your audience! <br><br>All from one link in the bio.<br><br>\
@@ -245,6 +245,15 @@
               document.body.appendChild( s );
         return `<div class="mx-4 mb-8 justify-center content-center flex  `+classes+`"><blockquote class="twitter-tweet m-auto `+ classes +`">
               <a href="`+ field.value +`"></a> 
+              </blockquote></div>`;
+    },
+    field_xpost: function(field, classes){
+      var src = 'https://platform.twitter.com/widgets.js';
+            var s = document.createElement( 'script' );
+              s.setAttribute( 'src', src );
+              document.body.appendChild( s );
+        return `<div class="mx-4 mb-8 justify-center content-center flex  `+classes+`"><blockquote class="twitter-tweet m-auto `+ classes +`">
+              <a href="`+ field.value.replace('x.com', 'twitter.com') +`"></a> 
               </blockquote></div>`;
     },
     field_tags: function(field, classes){
