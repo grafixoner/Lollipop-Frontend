@@ -1,7 +1,7 @@
 var lollipop = {
   currentToken: '',
-  apiurl: "https://apilocal.lollipop.gg",
-  baseurl: "https://local.lollipop.gg",
+  apiurl: "https://api.lollipop.gg",
+  baseurl: "https://lollipop.gg",
   nfts: {},
   iframe: false,
   loading: false,
