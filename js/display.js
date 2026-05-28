@@ -148,9 +148,11 @@ var lollipop = {
       }
     };
 
-    console.log(dir, this.currentToken, 'test');
 
-    lollipop.config = await fetch(`/`+dir+`/`+this.currentToken+`.json?ver=`+Date.now(),opts)
+    const token = String(this.currentToken || '').toLowerCase();
+
+
+    lollipop.config = await fetch(`/${dir}/${token}.json?ver=${Date.now()}`, opts)
       .then((res) => res.json())
       .then((res) => {
         try{
