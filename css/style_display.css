@@ -1,8 +1,231 @@
-@import 'https://fonts.googleapis.com/css2?family=Indie+Flower&family=Lobster&display=swap';
-@import "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
-@import 'https://fonts.googleapis.com/css2?family=Fredericka+the+Great&display=swap';
-@import 'https://fonts.googleapis.com/css2?family=Special+Elite&display=swap';
-@import 'https://fonts.googleapis.com/css2?family=Lobster&display=swap';
+@import 'https://fonts.googleapis.com/css2?family=Indie+Flower&family=Lato:wght@300;400;700&family=Lobster&family=Fredericka+the+Great&family=Special+Elite&display=swap';
+
+/* ── Mixtape compact player ─────────────────────────────────────────────── */
+.mx-yt-frame { position: fixed; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.mx-player {
+  position: relative;        /* anchor the tape overlay */
+  background: #3a3a3a;        /* dark grey fallback; overridden inline by Player Color */
+  color: #cccccc;            /* light grey fallback; overridden inline by Player Text Color */
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0 16px 8px;
+}
+/* Cassette tape laid over the player color. Semi-transparent so the Player Color
+   shows through; content sits above it (see .mx-player > *). Tune --mx-tape-opacity. */
+.mx-player::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/mixtape-tape.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: var(--mx-tape-opacity, 0.2);
+  pointer-events: none;
+  z-index: 0;
+}
+.mx-player > * {
+  position: relative;        /* keep player UI above the tape */
+  z-index: 1;
+}
+.mx-tracklist {
+  max-height: 260px;
+  overflow-y: auto;
+}
+/* Mystery mode: obscure artwork until... well, it stays a mystery */
+.mx-blur { filter: blur(10px); }
+
+/* Now-playing bar */
+.mx-now-playing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 6px;
+}
+.mx-now-thumb {
+  width: 44px; height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.mx-now-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.mx-now-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mx-now-sub {
+  font-size: 11px;
+  opacity: 0.55;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Controls */
+.mx-controls { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.mx-btn {
+  background: none; border: none; cursor: pointer;
+  font-size: 15px; padding: 5px 6px;
+  opacity: 0.65; color: inherit; line-height: 1;
+  transition: opacity 0.15s;
+}
+.mx-btn:hover { opacity: 1; }
+.mx-btn-play { font-size: 19px; }
+
+/* Progress bar */
+.mx-progress {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px 10px;
+}
+.mx-progress-track {
+  flex: 1; height: 3px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 2px; overflow: hidden;
+  cursor: pointer;
+}
+.mx-progress-fill {
+  height: 100%;
+  background: #cd213b;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.4s linear;
+}
+.mx-time {
+  font-size: 10px; opacity: 0.45;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Volume — icons and thumb inherit currentColor, track at 50% opacity */
+.mx-volume {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.mx-vol-icon {
+  font-size: 8px;
+  opacity: 0.5;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.mx-vol {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 72px;
+  height: 14px;           /* touch/click target */
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  color: inherit;
+}
+.mx-vol::-webkit-slider-runnable-track {
+  height: 3px;
+  background: color-mix(in srgb, currentColor 40%, transparent);
+  border-radius: 20px;
+}
+.mx-vol::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: currentColor;
+  cursor: pointer;
+  margin-top: -5px;
+}
+.mx-vol::-moz-range-track {
+  height: 3px;
+  background: color-mix(in srgb, currentColor 40%, transparent);
+  border-radius: 20px;
+}
+.mx-vol::-moz-range-thumb {
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: currentColor;
+  cursor: pointer;
+  border: none;
+}
+
+/* Track list */
+.mx-tracklist { list-style: none; padding: 0; margin: 0; }
+.mx-track {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.mx-track:last-child { border-bottom: none; }
+.mx-track:hover,
+.mx-track-active { background: rgba(255,255,255,0.08); }
+.mx-track img {
+  width: 36px; height: 36px;
+  border-radius: 4px; object-fit: cover; flex-shrink: 0;
+}
+.mx-track-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mx-track-title {
+  font-size: 12px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mx-track-sub {
+  font-size: 10px; opacity: 0.5;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mx-track-play {
+  font-size: 10px; opacity: 0;
+  flex-shrink: 0; transition: opacity 0.12s;
+}
+.mx-track:hover .mx-track-play,
+.mx-track-active .mx-track-play { opacity: 0.5; }
+/* ── end Mixtape ─────────────────────────────────────────────────────────── */
+
+/* Rich text content — restore structure Tailwind preflight removes */
+.rt-content h1 { font-size: 1.6em; font-weight: 700; margin: .3em 0; }
+.rt-content h2 { font-size: 1.35em; font-weight: 700; margin: .3em 0; }
+.rt-content h3 { font-size: 1.15em; font-weight: 700; margin: .3em 0; }
+.rt-content ul { list-style: disc; margin-left: 1.25em; }
+.rt-content ol { list-style: decimal; margin-left: 1.25em; }
+.rt-content li { margin: .15em 0; }
+.rt-content a  { color: #2d95d2; text-decoration: underline; }
+.rt-content blockquote {
+  border-left: 3px solid rgba(0,0,0,0.2);
+  margin: .5em 0;
+  padding-left: 12px;
+  font-style: italic;
+}
+.rt-content p { margin: .35em 0; }
+
+/* Card base — Lato body fallback, Special Elite title fallback.
+   Actual fonts come from global settings: body font as a class on .card,
+   heading font applied inline per-<h3> (inline overrides these fallbacks). */
+.card                 { font-family: 'Lato', sans-serif; }
+.card h3              { font-family: 'Special Elite', cursive; }
+
+/* Font selector classes — applied to .card by displayLink */
+.card.indie        { font-family: 'Indie Flower', cursive; }
+.card.lato         { font-family: 'Lato', sans-serif; }
+.card.lobster      { font-family: 'Lobster', cursive; }
+.card.specialelite { font-family: 'Special Elite', cursive; }
+.card.fredericka   { font-family: 'Fredericka the Great', cursive; }
+
+/* Legacy utility classes (used inline on elements outside the card) */
+.indie        { font-family: 'Indie Flower', cursive; }
+.lato         { font-family: 'Lato', sans-serif; }
+.lobster      { font-family: 'Lobster', cursive; }
+.specialelite,
+.elite        { font-family: 'Special Elite', cursive; }
+.fredericka   { font-family: 'Fredericka the Great', cursive; }
 
 html {
     /*background: linear-gradient(0,#583e24 50%,#83cee8 50% 100%);*/
@@ -506,6 +729,98 @@ display:none;
 .flickity-enabled span {
   margin-right: 10px;
 }
+/* ── Gallery: masonry stack + lightbox ────────────────────────────────────── */
+.gallery-masonry {
+  column-gap: 8px;
+  padding: 0 8px;
+}
+.gallery-masonry .gallery-img {
+  width: 100%;
+  display: block;
+  margin: 0 0 8px;
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+.gallery-img { cursor: pointer; }
+
+/* Square thumbnails — uniform cover-cropped tiles. */
+.gallery-grid {
+  display: grid;
+  gap: 8px;
+  padding: 0 8px;
+}
+.gallery-sq {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.gallery-sq .gallery-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* Square thumbnails laid out as a swipeable row. */
+.gallery-square-slider { padding: 0 8px; }
+.gallery-square-slider .gallery-sq {
+  width: 45%;
+  margin-right: 8px;
+}
+.gallery-square-slider.small .gallery-sq { width: 30%; }
+.gallery-square-slider.large .gallery-sq { width: 70%; }
+
+.gallery-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.gallery-lightbox.is-open { display: flex; }
+.gallery-lightbox img {
+  max-width: 100%;
+  max-height: 90vh;
+  border-radius: 8px;
+}
+.gallery-lightbox__close {
+  position: absolute;
+  top: 12px;
+  right: 20px;
+  color: #fff;
+  font-size: 36px;
+  line-height: 1;
+  cursor: pointer;
+}
+/* ── end gallery ──────────────────────────────────────────────────────────── */
+
+/* ── Team ─────────────────────────────────────────────────────────────────── */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 12px;
+}
+.team-card { text-align: center; }
+.team-card__photo {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 8px;
+  background: #e5e7eb center/cover no-repeat;
+  border-radius: 12px;
+}
+.team-card__photo--round { border-radius: 50%; }
+.team-card__name { font-weight: 600; font-size: 1rem; line-height: 1.2; }
+.team-card__role { font-size: 0.85rem; opacity: 0.7; margin-top: 2px; }
+.team-card__bio { font-size: 0.8rem; opacity: 0.85; margin-top: 6px; white-space: pre-wrap; }
+@media (max-width: 360px) {
+  .team-grid { grid-template-columns: 1fr; }
+}
+/* ── end team ─────────────────────────────────────────────────────────────── */
+
 .nfts-grid.small{
   column-count: 4;
       grid-template-columns: repeat(4,minmax(0,1fr));
