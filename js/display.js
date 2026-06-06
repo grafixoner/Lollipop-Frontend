@@ -553,6 +553,11 @@ var lollipop = {
     return ``;
   },
 
+  // Team bio-alignment control renders nothing itself; its value is applied in field_team.
+  field_textalign: function(field, classes){
+    return ``;
+  },
+
   field_team: function(field, classes){
     var members = (Array.isArray(field.value) ? field.value : []).filter(function(m){
       return m && (m.image_url || m.title || m.subtitle || m.description);
@@ -560,6 +565,7 @@ var lollipop = {
     if (!members.length) return ``;
 
     var round = field.round === false ? '' : ' team-card__photo--round';
+    var bioAlign = field.bioAlign || 'center';
     var html = `<div class="team-grid w-full mb-6">`;
     members.forEach(function(m){
       var img = m.image_url
@@ -567,7 +573,7 @@ var lollipop = {
         : ``;
       var name = m.title ? `<div class="team-card__name">` + lollipop.escapeAttr(m.title) + `</div>` : ``;
       var role = m.subtitle ? `<div class="team-card__role">` + lollipop.escapeAttr(m.subtitle) + `</div>` : ``;
-      var bio  = m.description ? `<div class="team-card__bio">` + lollipop.escapeAttr(m.description) + `</div>` : ``;
+      var bio  = m.description ? `<div class="team-card__bio" style="text-align:` + bioAlign + `">` + lollipop.escapeAttr(m.description) + `</div>` : ``;
       html += `<div class="team-card">` + img + name + role + bio + `</div>`;
     });
     html += `</div>`;
@@ -1206,14 +1212,17 @@ var lollipop = {
   },
 
   build_team: function(section, classes){
-    // Pass the "round headshots?" choice through to the team field.
+    // Pass the "round headshots?" + bio-alignment choices through to the team field.
     var roundField = section.fields.find(function(f){ return f.method === 'round'; });
+    var alignField = section.fields.find(function(f){ return f.type === 'textalign'; });
     var round = !(roundField && roundField.value === false); // default round
+    var bioAlign = (alignField && alignField.align) || 'center';
 
     var html = `<section class="mb-6 relative `+classes+`" style="color: `+lollipop.config.section[0].fields[2].value+`">`;
     section.fields.forEach(function(field){
       if (field.type == 'team'){
         field.round = round;
+        field.bioAlign = bioAlign;
       }
       html += lollipop['field_'+ field.type](field, field.class);
     });
