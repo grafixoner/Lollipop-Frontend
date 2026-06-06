@@ -1,0 +1,85 @@
+<div class="popamp-shell">
+  <div class="popamp-window">
+    <div class="popamp-titlebar">
+      <div class="popamp-titlebar-left">
+        <span class="popamp-corner-mark" aria-hidden="true">⚡</span>
+        <span class="popamp-titlebar-caption"><span class="popamp-titlebar-text">POPAMP</span></span>
+      </div>
+    </div>
+
+    <div class="popamp-main">
+      <div class="popamp-display-shell">
+        <div class="popamp-display-grid" aria-hidden="true"></div>
+        <div class="popamp-display-glow" aria-hidden="true"></div>
+
+        <div class="popamp-viz-panel" aria-hidden="true">
+          <div class="popamp-viz-grid"></div>
+          <canvas class="popamp-matrix-canvas" id="popampMatrix" width="1" height="1"></canvas>
+        </div>
+
+        <div class="popamp-info-panel">
+          <div class="popamp-marquee-shell">
+            <div class="popamp-track-marquee">
+              <span class="popamp-track-title" id="popampTrackTitle"></span>
+            </div>
+          </div>
+
+          <div class="popamp-display-stats">
+            <div class="popamp-stat-pair">
+              <span class="popamp-stat-box"><span class="popamp-stat-value">128</span></span>
+              <span class="popamp-led-label">kbps</span>
+            </div>
+            <div class="popamp-stat-pair">
+              <span class="popamp-stat-box"><span class="popamp-stat-value">44</span></span>
+              <span class="popamp-led-label">kHz</span>
+            </div>
+            <div class="popamp-stat-pair right">
+              <span class="popamp-led-label">mono</span>
+              <span class="popamp-led-label">stereo</span>
+            </div>
+          </div>
+
+          <div class="popamp-meta-control-row" aria-label="Popamp display sliders and panels">
+            <div class="popamp-toolbar-sliders">
+              <input class="popamp-toolbar-slider left" id="popampVolumeRange" type="range" min="0" max="100" value="72" aria-label="Volume" />
+              <input class="popamp-toolbar-slider right" id="popampBalanceRange" type="range" min="0" max="100" value="50" aria-label="Balance" />
+            </div>
+            <div class="popamp-toolbar-buttons">
+              <input class="popamp-fake-input" type="checkbox" id="popampChipEq" checked />
+              <label class="popamp-chip-button" for="popampChipEq">EQ</label>
+              <input class="popamp-fake-input" type="checkbox" id="popampChipPl" checked />
+              <label class="popamp-chip-button" for="popampChipPl">PL</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="popamp-bottom-strip" aria-label="Popamp scrubber and controls">
+      <div class="popamp-spectrum-panel" aria-label="Track scrubber">
+        <div class="popamp-spectrum" id="popampSpectrum">
+          <span class="popamp-spectrum-thumb"></span>
+          <input class="popamp-spectrum-range" id="popampSpectrumRange" type="range" min="0" max="1000" value="0" tabindex="-1" aria-hidden="true" />
+        </div>
+      </div>
+
+      <div class="popamp-bottom-controls">
+        <div class="popamp-transport-cluster" aria-label="Popamp transport controls">
+          <div class="popamp-transport-buttons" id="popampTransportMount">
+            <button id="popampPrevButton" class="popamp-transport-button rewind" type="button" aria-label="Previous track"><span></span></button>
+            <button id="popampPlayButton" class="popamp-transport-button play" type="button" aria-label="Play"><span></span></button>
+            <button id="popampPauseButton" class="popamp-transport-button pause" type="button" aria-label="Pause"><span></span></button>
+            <button id="popampStopButton" class="popamp-transport-button stop" type="button" aria-label="Stop"><span></span></button>
+            <button id="popampNextButton" class="popamp-transport-button forward" type="button" aria-label="Next track"><span></span></button>
+          </div>
+        </div>
+        <div class="popamp-bottom-shuffle">
+          <input class="popamp-fake-input" type="checkbox" id="popampShuffle" />
+          <label class="popamp-wide-button" for="popampShuffle">shuffle</label>
+          <input class="popamp-fake-input" type="checkbox" id="popampRepeat" checked />
+          <label class="popamp-wide-button" for="popampRepeat">repeat</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

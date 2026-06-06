@@ -1,0 +1,1179 @@
+/*
+  CSS cassette skin — adapted from codepen.io/manz/pen/qBmWYdo
+  Converted to plain scoped CSS. No preprocessors.
+  Tape animation driven by --track-progress CSS variable (0–1).
+  Reels spin only while [data-player-state="playing"].
+*/
+
+@property --tape-shine-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: -35deg;
+}
+
+@property --tape-shimmer-opacity {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: .82;
+}
+
+/* ── Cassette shell wrapper ── */
+.manz-cassette-skin {
+  --left-tape-scale: calc(1 - (var(--track-progress) * .22));
+  --right-tape-scale: calc(.54 + (var(--track-progress) * .36));
+  display: grid;
+  place-items: center;
+}
+
+.cassette-shell-stage {
+  width: calc(100% + 18px);
+  margin-inline: -9px;
+  border-radius: 20px;
+  padding: clamp(7px, 2vw, 10px);
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(180deg, #0a0a08, #1b1913 25%, #080807 100%);
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow:
+    inset 0 2px 8px rgba(255,255,255,.07),
+    inset 0 -12px 20px rgba(0,0,0,.45),
+    0 16px 28px rgba(0,0,0,.45);
+  transform-style: preserve-3d;
+}
+
+#cassetteDoorLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.cassette-door-stage {
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  padding: clamp(7px, 2vw, 10px);
+  position: relative;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+
+.cassette-shell-stage::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 17px;
+  z-index: 8;
+  pointer-events: none;
+  opacity: .72;
+  mix-blend-mode: screen;
+  border: 1px solid rgba(255,255,255,.08);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.02) 15%, transparent 40%),
+    linear-gradient(100deg, transparent 0 8%, rgba(255,255,255,.18) 11%, transparent 17% 48%, rgba(255,255,255,.10) 51%, transparent 58%);
+}
+
+.cassette-shell-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  opacity: .20;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.04) 0 1px, transparent 1px 52px);
+}
+
+/* Keep cassette-only case treatment scoped here so shared base resets
+   for other skins do not affect the J-card presentation. */
+[data-skin="cassette"] .track-card {
+  width: 105%;
+  aspect-ratio: 904 / 579;
+  margin: 0 0 0 -10px;
+  padding: 4.6% 3.3% 4.9%;
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: #ecebe4;
+  background-image: url("../assets/case_border.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.3),
+    inset 0 -10px 18px rgba(0,0,0,.09),
+    0 2px 3px rgba(0,0,0,.2),
+    0 12px 22px rgba(0,0,0,.3),
+    0 26px 42px rgba(0,0,0,.24);
+  transform: rotate(-1.2deg);
+}
+
+[data-skin="cassette"] .track-card::before {
+  content: "";
+  position: absolute;
+  left: 1.8%;
+  right: 1.8%;
+  bottom: -10px;
+  height: 18px;
+  z-index: 0;
+  border-radius: 0 0 10px 10px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.16), rgba(120,126,132,.62) 28%, rgba(76,80,86,.92));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    0 10px 16px rgba(0,0,0,.26);
+  filter: blur(.2px);
+  transform: perspective(220px) rotateX(-28deg) scaleX(.985);
+  transform-origin: 50% 0;
+}
+
+[data-skin="cassette"] .track-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.12), transparent 18%, transparent 82%, rgba(0,0,0,.08)),
+    linear-gradient(115deg, rgba(255,255,255,.22) 0 6%, transparent 14% 50%, rgba(255,255,255,.08) 60%, transparent 70%);
+  mix-blend-mode: screen;
+  opacity: .5;
+}
+
+[data-skin="cassette"] .jcard {
+  padding: 7px 12px 4px;
+}
+
+[data-skin="cassette"] .jcard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: .5;
+  background-image: radial-gradient(circle, rgba(120,116,104,.07) .5px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+[data-skin="cassette"] .popamp-eq-panel,
+[data-skin="cassette"] .popamp-panel-title,
+[data-skin="cassette"] .popamp-playlist-footer {
+  display: none !important;
+}
+
+[data-skin="cassette"] .popamp-playlist-panel {
+  display: block;
+  min-height: 0;
+}
+
+[data-skin="cassette"] .jcard-print {
+  position: relative;
+  z-index: 2;
+  font-family: Arial, "Helvetica Neue", sans-serif;
+  font-size: clamp(8px, 2.5vw, 11px);
+  letter-spacing: .01em;
+  color: #2a2a26;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-skin="cassette"] .jcard-print b {
+  font-weight: 800;
+}
+
+[data-skin="cassette"] .jcard-fields {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  padding-bottom: 4px;
+  border-bottom: 1.5px solid #c0392b;
+  font-family: Arial, "Helvetica Neue", sans-serif;
+  font-size: clamp(8px, 2.5vw, 11px);
+  color: #44443c;
+}
+
+[data-skin="cassette"] .track-list {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  max-height: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+[data-skin="cassette"] .track-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+[data-skin="cassette"] .track-list::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 44%;
+  width: 4px;
+  pointer-events: none;
+  background-image: radial-gradient(circle, rgba(70,66,56,.5) 1px, transparent 1.5px);
+  background-size: 4px 27px;
+  background-position: 0 18px;
+  opacity: .55;
+}
+
+[data-skin="cassette"] .track-row {
+  width: 100%;
+  min-height: 27px;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  border: 0;
+  border-bottom: 1px solid rgba(74,70,60,.4);
+  padding: 1px 2px 2px;
+  background: transparent;
+  color: #2b313e;
+  text-align: left;
+}
+
+[data-skin="cassette"] .track-row.active {
+  background: linear-gradient(90deg, rgba(255,214,92,.5), rgba(255,214,92,.16) 75%);
+}
+
+[data-skin="cassette"] .track-row.active .play-mark {
+  display: inline;
+  color: #c0392b;
+}
+
+[data-skin="cassette"] .track-num {
+  align-self: end;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  color: rgba(43,49,62,.55);
+  font-family: "Patrick Hand", cursive;
+  font-size: 13px;
+}
+
+[data-skin="cassette"] .play-mark {
+  display: none;
+  font-size: 10px;
+}
+
+[data-skin="cassette"] .track-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: "Patrick Hand", cursive;
+  font-size: clamp(14px, 4.3vw, 18px);
+  color: #283042;
+  line-height: 1.1;
+  transform: rotate(-.5deg);
+}
+
+[data-skin="cassette"] .track-row:nth-child(2n) .track-title {
+  transform: rotate(.45deg) translateY(-.5px);
+}
+
+[data-skin="cassette"] .track-row:nth-child(3n) .track-title {
+  transform: rotate(-.3deg) translateY(.5px);
+}
+
+[data-skin="cassette"] .track-row:nth-child(5n) .track-title {
+  transform: rotate(.7deg);
+}
+
+[data-skin="cassette"] .track-artist {
+  display: none;
+}
+
+[data-skin="cassette"] .track-duration {
+  justify-self: end;
+  align-self: end;
+  font-family: "Patrick Hand", cursive;
+  font-size: 13px;
+  color: rgba(43,49,62,.5);
+  transform: rotate(-.4deg);
+}
+
+/* ── Main cassette body ── */
+.css-cassette {
+  --external-notch-shape: polygon(100% 0, 0 5%, 0 95%, 100% 100%);
+  --tape-body: #2f2f2f;
+  --tape-border: #424242;
+  --tape-light: #5a5a5a;
+  --tape-dark: #1c1c1c;
+  --skin-accent: #6fcdde;
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 458 / 287;
+  margin-inline: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: clamp(2px, .7vw, 3px) solid var(--tape-border);
+  border-radius: clamp(11px, 4vw, 15px);
+  background:
+    linear-gradient(273deg, rgba(255,255,255,.075), transparent),
+    repeating-linear-gradient(to bottom, #1c1c1c 0 1px, #2c2c2c 1px 2px);
+  box-shadow:
+    0 0 10px 2px rgba(34,34,34,.47),
+    0 18px 26px rgba(0,0,0,.42),
+    inset 0 1px 0 rgba(255,255,255,.07);
+  animation: cssCassetteSnap 1.05s cubic-bezier(.18,.9,.14,1.02) both;
+  isolation: isolate;
+}
+
+.css-cassette::before,
+.css-cassette::after {
+  content: "";
+  display: block;
+  position: absolute;
+  bottom: 7%;
+  width: 1.2%;
+  height: 26%;
+  background: #333;
+  clip-path: var(--external-notch-shape);
+}
+
+.css-cassette::before { left: -2%; }
+.css-cassette::after  { right: -2%; transform: scaleX(-1); background: #444; }
+
+@keyframes cssCassetteSnap {
+  0%   { opacity: 0; transform: perspective(700px) translate3d(0,-84px,130px) rotateX(16deg) scale(1.18); filter: blur(2px) saturate(1.05); }
+  58%  { opacity: 1; transform: perspective(700px) translate3d(0,8px,0) rotateX(-2deg) scale(.965); filter: blur(.2px) saturate(1); }
+  74%  { transform: perspective(700px) translate3d(0,-4px,0) rotateX(1deg) scale(1.015); }
+  100% { opacity: 1; transform: perspective(700px) translate3d(0,0,0) rotateX(0) scale(1); filter: blur(0) saturate(1); }
+}
+
+/* ── Top tape strip ── */
+.css-top-tape {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  height: 8.8%;
+  padding: 0 5.4%;
+}
+
+.arrow-mark-container {
+  display: flex;
+  background: rgba(0,0,0,.24);
+  width: 13%;
+  overflow: hidden;
+}
+
+.arrow-mark {
+  color: var(--tape-light);
+  font-size: clamp(15px, 5vw, 32px);
+  line-height: .8;
+  transform: scaleY(1.6) translate(4%, -20%);
+}
+
+.brand-mark {
+  display: flex;
+  align-items: center;
+  padding: 0 1.5%;
+  background: rgba(0,0,0,.24);
+  color: var(--tape-light);
+  font-family: "Special Elite", ui-monospace, monospace;
+  font-size: clamp(9px, 2.5vw, 16px);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+/* ── Middle tape (label area) ── */
+.css-medium-tape {
+  height: 65.2%;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: 0 5.8%;
+}
+
+.css-label-container {
+  width: 100%;
+  background: var(--tape-dark);
+  border-radius: 4px;
+  padding: .95%;
+}
+
+.css-label {
+  height: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(transparent 0 20px, #c6c6c6 20px 21px),
+    linear-gradient(278deg, #f1f1ef, #cfcfcd);
+}
+
+/* Top label section */
+.css-top-label {
+  position: relative;
+  height: 33%;
+  color: #333;
+  font-weight: 400;
+  font-size: 16px;
+}
+
+.predefined-text {
+  position: absolute;
+  left: 1.8%;
+  top: 12%;
+  font-family: Arial, sans-serif;
+  font-size: clamp(5px, 1.8vw, 9px);
+  letter-spacing: .1em;
+  opacity: .7;
+}
+
+.top-text {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 1.3% 7% 0 15%;
+  text-align: left;
+}
+
+.mixtape-handwrite {
+  width: min(92%, 320px);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: "Patrick Hand", cursive;
+  font-weight: 400;
+  font-size: clamp(12px, 4.6vw, 21px);
+  line-height: 1;
+  color: #2a2a2a;
+  transform-origin: 12% 50%;
+  text-shadow: 0 .2px 0 rgba(0,0,0,.12);
+}
+
+/* Middle label section — reels */
+.css-medium-label {
+  height: 50.6%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--skin-accent);
+  font-family: Arial, sans-serif;
+}
+
+.side-name {
+  width: 12.5%;
+  display: grid;
+  place-items: center;
+  color: #222;
+  font-weight: 900;
+  font-size: clamp(17px, 6vw, 30px);
+}
+
+.gap-container {
+  width: 69.5%;
+  height: 79%;
+  border: clamp(2px, .9vw, 4px) solid var(--tape-dark);
+  border-radius: 5px;
+  background: linear-gradient(76deg, transparent, rgba(170,170,170,.13)), var(--tape-body);
+}
+
+.gap {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Tape reels */
+.tapereel {
+  width: 15.6%;
+  aspect-ratio: 1;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  border: clamp(2px, .9vw, 4px) solid #aaa;
+  box-shadow: 0 0 0 clamp(2px, .9vw, 4px) #111;
+  background:
+    radial-gradient(circle at 50% 50%, #f7efd4 0 28%, transparent 29%),
+    radial-gradient(circle, #303030, #141414 68%);
+  transition: filter .2s ease;
+}
+
+.tapereel::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255,255,255,.12) 0 9deg, transparent 9deg 20deg);
+  opacity: 0;
+  filter: blur(.8px);
+}
+
+[data-player-state="playing"] .tapereel { filter: blur(.18px); }
+
+[data-player-state="playing"] .tapereel.left {
+  animation: spinTapeReel 6s linear infinite reverse;
+}
+
+[data-player-state="playing"] .tapereel.right {
+  animation: spinTapeReel 8s linear infinite reverse;
+}
+
+[data-player-state="playing"] .tapereel::after { opacity: .65; }
+
+.notch {
+  position: absolute;
+  width: 100%;
+  height: 16%;
+  background: linear-gradient(to right, #aaa 0 10%, transparent 12% 88%, #aaa 90% 100%);
+}
+
+.notch-1 { transform: rotate(60deg); }
+.notch-2 { transform: rotate(0deg); }
+.notch-3 { transform: rotate(-60deg); }
+
+/* Tape window (inner gap) */
+.central-gap {
+  position: relative;
+  width: 31%;
+  height: 66%;
+  margin: 0 3.2%;
+  overflow: hidden;
+  border: clamp(2px, .7vw, 3px) solid #222;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.06), transparent 38%),
+    linear-gradient(180deg, rgba(0,0,0,.36), rgba(0,0,0,.12)),
+    #774486;
+}
+
+.central-gap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background-image: linear-gradient(transparent, rgba(255,255,255,.32), transparent);
+  pointer-events: none;
+}
+
+/* Tape mass — transfers left→right via --track-progress */
+.innertape {
+  position: absolute;
+  width: 150%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: .96;
+  overflow: hidden;
+}
+
+.innertape::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      rgba(255,255,255,.055) 0 1.2%,
+      rgba(42,42,42,.08) 1.2% 2.1%,
+      rgba(18,18,18,.0) 2.1% 3.2%),
+    conic-gradient(
+      from var(--tape-shine-angle, -35deg),
+      rgba(255,255,255,.02) 0deg,
+      rgba(255,255,255,.08) 32deg,
+      rgba(255,255,255,.03) 70deg,
+      rgba(255,255,255,.075) 128deg,
+      rgba(255,255,255,.025) 176deg,
+      rgba(255,255,255,.07) 236deg,
+      rgba(255,255,255,.02) 290deg,
+      rgba(255,255,255,.06) 332deg,
+      rgba(255,255,255,.02) 360deg),
+    radial-gradient(circle at 50% 50%, transparent 0 53%, rgba(255,255,255,.06) 61%, rgba(255,255,255,.02) 71%, transparent 79%),
+    radial-gradient(circle, #646464 0 58%, #424242 70%, #232323 86%, #141414 100%);
+  transition: transform .35s ease-out;
+  transform-origin: 50% 50%;
+  filter: blur(.35px);
+  opacity: var(--tape-shimmer-opacity, .82);
+}
+
+.innertape.left {
+  left: -98%;
+  top: -100%;
+}
+
+.innertape.right {
+  right: -98%;
+  top: -100%;
+}
+
+.innertape.left::before {
+  transform: scale(var(--left-tape-scale));
+}
+
+.innertape.right::before {
+  transform: scale(var(--right-tape-scale));
+}
+
+.innertape::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #f1f1ef 0 42%, #bfbfbf 43% 62%, #6b6b6b 63% 78%, #2d2d2d 79% 100%);
+  box-shadow:
+    0 0 0 1px rgba(20,20,20,.5),
+    inset 0 1px 1px rgba(255,255,255,.18);
+}
+
+[data-player-state="playing"] .innertape.left::before {
+  animation: tapeMassShineLeft 6s linear infinite reverse, tapeMassPulse 3.6s ease-in-out infinite;
+}
+
+[data-player-state="playing"] .innertape.right::before {
+  animation: tapeMassShineRight 8s linear infinite reverse, tapeMassPulse 4.4s ease-in-out infinite;
+}
+
+/* Noise reduction badge */
+.noise-reduction {
+  width: 12.5%;
+  margin-left: .5%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: #222;
+  font-size: clamp(4px, 1.65vw, 7px);
+  line-height: 1.1;
+}
+
+.noise-reduction .box {
+  display: flex;
+  margin-top: 2px;
+}
+
+.noise-reduction .box > div {
+  border: 1px solid #444;
+  background: #fff;
+  font-size: clamp(4px, 1.4vw, 6px);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+/* Bottom label */
+.css-bottom-label {
+  height: 16.4%;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  background: linear-gradient(-278deg, #f1f1ef, #cfcfcd);
+}
+
+.brand-text .maintext {
+  color: #222;
+  /* font-family: "Special Elite", ui-monospace, monospace; */
+  font-size: clamp(10px, 2.5vw, 20px);
+  font-weight: 900;
+  line-height: 1;
+  transform: translate(18%, 0) scaleX(1.35);
+}
+
+.brand-text .subtext {
+  color: #333;
+  font-family: Arial, sans-serif;
+  font-size: clamp(4px, 1.6vw, 7px);
+  font-weight: 700;
+  transform: translateY(-20%);
+}
+
+.arrow-text {
+  color: var(--skin-accent);
+  font-size: clamp(16px, 6vw, 32px);
+  transform: scaleX(1.5) translate(-6%, -3%);
+}
+
+.model-text {
+  color: #222;
+  font-family: "Special Elite", ui-monospace, monospace;
+  font-size: clamp(15px, 5vw, 28px);
+  font-weight: 900;
+  transform: translate(0, 2%);
+}
+
+.model-text span { color: var(--skin-accent); }
+
+/* ── Bottom tape strip ── */
+.css-bottom-tape {
+  height: 26%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+.magnetic-container {
+  z-index: 3;
+  width: 76.4%;
+  height: 72.6%;
+  position: relative;
+  filter:
+    drop-shadow(-4px 0 1px #131313)
+    drop-shadow(4px 0 1px #383838)
+    drop-shadow(0 -4px 0 #202020);
+}
+
+.magnetic-shield {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  clip-path: polygon(0 100%, 4% 0, 96% 0, 100% 100%);
+  background: repeating-linear-gradient(to bottom, #2c2c2c 0 1px, #1c1c1c 1px 3px);
+  filter:
+    drop-shadow(-4px 0 1px #131313)
+    drop-shadow(4px 0 1px #383838)
+    drop-shadow(0 -4px 0 #202020);
+}
+
+.left-hole-container,
+.right-hole-container {
+  width: 35.7%;
+  display: flex;
+  justify-content: space-evenly;
+  align-items: flex-end;
+}
+
+.hole {
+  width: 16%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #111;
+  border: 2px solid #191919;
+  box-shadow: 0 0 0 2px #171717;
+  transform: translateY(-22%);
+}
+
+.hole-2, .hole-3 {
+  width: 19.2%;
+  aspect-ratio: 1.33 / 1;
+  border-radius: 30px;
+  border: 3px solid #222;
+  box-shadow: 0 0 0 2px #111;
+  transform: translateY(-88%);
+}
+
+.hole-3 {
+  width: 16%;
+  border-radius: 10px;
+  transform-origin: 50% 50%;
+  transform: rotate(90deg) translateX(-88%);
+}
+
+/* ── Corner screws ── */
+.cassette-screw {
+  position: absolute;
+  z-index: 7;
+  width: clamp(10px, 3.5vw, 16px);
+  aspect-ratio: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  border-top: 1px solid #222;
+  border-bottom: 1px solid #666;
+  background: linear-gradient(#555, #333);
+  box-shadow: 0 0 2px 2px #111;
+  transform: rotate(-25deg);
+}
+
+.cassette-screw .dot {
+  position: absolute;
+  z-index: 5;
+  width: 25%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #222;
+  filter: blur(1px);
+}
+
+.cassette-screw::before,
+.cassette-screw::after {
+  content: "";
+  position: absolute;
+  width: 88%;
+  height: 25%;
+  border-radius: 2px;
+  background: linear-gradient(to right, #222 10%, #111 45% 65%, #222 90%);
+}
+
+.cassette-screw::before { transform: rotate(45deg); }
+.cassette-screw::after  { transform: rotate(-45deg); }
+
+.screw-1 { top: 1.4%;  left: 1.2%;  }
+.screw-2 { top: 1.4%;  right: 1.2%; }
+.screw-3 { bottom: 1.4%; left: 1.2%;  }
+.screw-4 { bottom: 1.4%; right: 1.2%; }
+
+.deck-door-top-rail {
+    position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        height: 4.2%;
+        z-index: 5;
+        pointer-events: none;
+        border-radius: 10px 10px 6px 6px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, 0) 24%, rgba(0, 0, 0, .18) 72%, rgba(0, 0, 0, .34)), linear-gradient(180deg, rgba(24, 30, 34, .92), rgba(11, 14, 18, .98));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), inset 0 -5px 10px rgba(0, 0, 0, .28);
+}
+
+.deck-door-top-rail::after {
+  content: "";
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.1) 10%, rgba(0,0,0,.4) 50%, rgba(255,255,255,.08) 90%, transparent);
+  opacity: .8;
+}
+
+/* ── Deck door ── */
+.deck-door {
+  position: absolute;
+      inset:1% -2.1% -0.4%;;
+      z-index: 6;
+      border-radius: 10px 10px 14px 14px;
+      border: 1px solid rgba(255, 255, 255, .1);
+      /* background: linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, 0) 18%, rgba(0, 0, 0, .12) 70%, rgba(0, 0, 0, .28)), linear-gradient(180deg, rgba(20, 30, 36, .72), rgba(10, 14, 18, .4)); */
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 -8px 18px rgba(0, 0, 0, .28), 0 3px 8px rgba(0, 0, 0, .24);
+      overflow: hidden;
+      backdrop-filter: blur(1.2px);
+      -webkit-backdrop-filter: blur(1.2px);
+      transform-origin: 50% 0;
+      animation: deckDoorClose .78s cubic-bezier(.2, .82, .18, 1) 1.28s both;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      transform-style: preserve-3d;
+      will-change: transform;
+}
+
+.deck-door::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 5px),
+    linear-gradient(105deg, transparent 0 18%, rgba(255,255,255,.13) 28%, transparent 38% 64%, rgba(255,255,255,.08) 74%, transparent 82%);
+  opacity: .7;
+  pointer-events: none;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.deck-door::after {
+  content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -5.8%;
+      height: 5.8%;
+      border-radius: 0 0 8px 8px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .18), rgba(116, 126, 134, .45) 30%, rgba(34, 38, 42, .92));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .14), 0 2px 5px rgba(0, 0, 0, .18);
+      transform-origin: 50% 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+}
+
+.deck-door-frame {
+  position: absolute;
+  inset: 1.6%;
+  border-radius: 9px 9px 13px 13px;
+  border: 2px solid rgba(26, 30, 33, .88);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 0 0 1px rgba(255,255,255,.06);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.deck-door-window {
+  position: absolute;
+      left: 10.2%;
+      right: 11.2%;
+      top: 33%;
+          bottom: 38%;
+      border-radius: 7px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      /*background: linear-gradient(180deg, rgba(118, 160, 177, .16), rgba(24, 33, 40, .26)), linear-gradient(180deg, rgba(4, 8, 10, .52), rgba(21, 28, 34, .34));*/
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), inset 0 -10px 16px rgba(0, 0, 0, .18);
+}
+
+.door-sticker {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
+}
+
+.door-sticker-paper {
+  position: relative;
+  background: #f6f3ea;
+  border: 1px solid rgba(64,58,48,.28);
+  border-radius: 6px;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.4);
+  overflow: hidden;
+}
+
+.door-sticker-paper::before,
+.door-sticker-paper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.door-sticker-paper::before {
+  opacity: .12;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(84,70,54,.4) 0 .8px, transparent 1px),
+    radial-gradient(circle at 78% 34%, rgba(84,70,54,.28) 0 .7px, transparent 1px),
+    radial-gradient(circle at 46% 72%, rgba(84,70,54,.22) 0 .9px, transparent 1px);
+  background-size: 22px 22px, 28px 28px, 26px 26px;
+}
+
+.door-sticker-paper::after {
+  opacity: .38;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.45), transparent 22% 74%, rgba(0,0,0,.08)),
+    linear-gradient(180deg, transparent, rgba(98,86,72,.1));
+}
+
+.door-sticker-lollipop {
+  left: 8.5%;
+  top: 65%;
+  width: 31%;
+  transform: rotate(-7deg);
+}
+
+.door-sticker-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.door-sticker-youtube {
+  right: 4.5%;
+      top: 76%;
+      width: 24%;
+      transform: rotate(3deg);
+}
+
+.door-sticker-youtube .door-sticker-paper {
+  padding: 5px 7px 6px;
+}
+
+.door-sticker-powered {
+  display: block;
+  font-family: Arial, "Helvetica Neue", sans-serif;
+  font-size: clamp(7px, 1vw, 7px);;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: #61584c;
+  text-align: center;
+}
+
+.door-sticker-youtube-mark {
+  margin-top: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 10px;
+}
+
+.door-sticker-youtube-icon {
+  position: relative;
+  width: 14px;
+  height: 10px;
+  border-radius: 4px;
+  background: #e61d3f;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22);
+}
+
+.door-sticker-youtube-icon::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-38%, -50%);
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-left: 5px solid #fff;
+}
+
+.door-sticker-youtube-text {
+  font-family: Arial, "Helvetica Neue", sans-serif;
+  font-size: clamp(7px, 1.5vw, 10px);
+  font-weight: 700;
+  color: #2c2a27;
+}
+
+.deck-door-lower-window {
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: 8.5%;
+  height: 8%;
+  z-index: 2;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.14);
+  background:
+    linear-gradient(180deg, rgba(180,220,232,.18), rgba(20,26,30,.2)),
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 38%, rgba(0,0,0,.12));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -3px 6px rgba(0,0,0,.12);
+  opacity: .8;
+  pointer-events: none;
+}
+
+.door-window-cutout {
+  position: absolute;
+  top: 14%;
+  bottom: 26%;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255,255,255,.1), transparent 48%),
+    linear-gradient(180deg, rgba(170,220,236,.12), rgba(8,12,16,.28));
+  border: 1px solid rgba(255,255,255,.05);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.door-window-cutout.left,
+.door-window-cutout.right {
+  width: 23.5%;
+}
+
+.door-window-cutout.left {  left: 15%; }
+.door-window-cutout.right { right: 14%; }
+
+.door-window-cutout.center {
+  left: 39%;
+  right: 38%;
+  border-radius: 6px;
+}
+
+.deck-door-handle {
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  bottom: -1.2%;
+  height: 3.4%;
+  border-radius: 999px 999px 3px 3px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.18), rgba(90,104,112,.18) 35%, rgba(18,22,26,.55)),
+    linear-gradient(180deg, #59626a, #23292e);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 -1px 0 rgba(0,0,0,.4),
+    0 2px 5px rgba(0,0,0,.24);
+}
+
+.deck-door,
+.deck-door-window,
+.deck-door-handle,
+.deck-door::before {
+  pointer-events: none;
+}
+
+.cassette-door-stage .deck-door {
+  cursor: default;
+  pointer-events: none;
+}
+
+.cassette-door-stage.is-door-ready .deck-door {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.cassette-door-stage.is-door-ready .deck-door {
+  animation: none;
+  transform: perspective(900px) translateZ(0) rotateX(0deg) translateY(0);
+  transition:
+    transform 980ms cubic-bezier(.16,.8,.14,1),
+    box-shadow 620ms ease,
+    opacity 380ms ease;
+}
+
+.cassette-door-stage.is-door-ready[data-door-open="true"] .deck-door {
+  transform: perspective(1200px) translateZ(0) rotateX(83deg) translateY(-26px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -4px 10px rgba(0,0,0,.16),
+    0 12px 24px rgba(0,0,0,.22);
+}
+
+.cassette-door-stage.is-door-ready[data-door-open="true"] .deck-door::after {
+  transform: translateY(-0.4px) scaleY(1.225);
+}
+
+.cassette-door-stage.is-door-ready[data-door-open="true"] .deck-door::before {
+  opacity: .38;
+  transition: opacity 480ms ease;
+}
+
+.cassette-door-stage.is-door-ready[data-door-open="true"] .deck-door-handle {
+  transform: none;
+  transition: none;
+}
+
+
+/* ── Animations ── */
+@keyframes spinTapeReel { to { transform: rotate(360deg); } }
+@keyframes tapeWindowShine { to { transform: translateX(26px); } }
+@keyframes tapeMassShineLeft {
+  from { --tape-shine-angle: -35deg; }
+  to { --tape-shine-angle: 325deg; }
+}
+
+@keyframes tapeMassShineRight {
+  from { --tape-shine-angle: -35deg; }
+  to { --tape-shine-angle: 325deg; }
+}
+
+@keyframes tapeMassPulse {
+  0%   { --tape-shimmer-opacity: .72; }
+  50%  { --tape-shimmer-opacity: .9; }
+  100% { --tape-shimmer-opacity: .72; }
+}
+@keyframes deckDoorClose {
+  0%   { opacity: 1; transform: perspective(1200px) translateZ(0) rotateX(83deg) translateY(-26px); }
+  58%  { opacity: 1; transform: perspective(1000px) translateZ(0) rotateX(18deg) translateY(-8px); }
+  82%  { transform: perspective(900px) translateZ(0) rotateX(-2deg) translateY(0); }
+  100% { opacity: 1; transform: perspective(900px) translateZ(0) rotateX(0deg) translateY(0); }
+}
+
+/* ── Narrow screen tweaks ── */
+@media (max-width: 380px) {
+  .css-cassette { border-width: 2px; }
+  .css-label-container { padding: .75%; }
+  .mixtape-handwrite { font-size: clamp(14px, 5.5vw, 22px); }
+  .noise-reduction { font-size: 5px; }
+  .deck-door { inset: 1% -2.1% -0.4%; }
+}

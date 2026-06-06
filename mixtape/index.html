@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Amanda's MixTape</title>
+  <link href="/css/fontawesome/css/all.min.css" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/cassette.css" />
+  <link rel="stylesheet" href="./css/popamp.css" />
+</head>
+<body>
+  <div id="app" class="app-shell" data-player-state="idle" data-view="playlist">
+    <main class="app-content">
+      <section class="player-panel">
+        <section class="media-stack" aria-label="Mixtape cassette and case">
+          <section class="visual-stage" aria-label="Mixtape cassette">
+            <div id="cassetteVisual"></div>
+            <div id="cassetteDoorLayer"></div>
+          </section>
+        </section>
+
+        <section class="controls" aria-label="Playback controls">
+          <div class="default-now-playing">
+            <img id="currentArtwork" class="current-artwork" alt="" src="" />
+            <div class="current-copy">
+              <div id="currentTitle" class="current-title">Untitled MixTape</div>
+              <div id="currentMeta" class="current-meta">Unknown Artist · 0:00</div>
+            </div>
+            <div class="deck-buttons controllers">
+              <button id="prevButton" class="controllers_button rewind" type="button" aria-label="Previous track"><i class="fa-solid fa-backward-step" aria-hidden="true"></i><span></span></button>
+              <button id="playButton" class="controllers_button play" type="button" aria-label="Play or pause"><i id="playButtonIcon" class="fa-solid fa-play" aria-hidden="true"></i><span></span></button>
+              <button id="nextButton" class="controllers_button forward" type="button" aria-label="Next track"><i class="fa-solid fa-forward-step" aria-hidden="true"></i><span></span></button>
+            </div>
+          </div>
+
+          <div class="default-progress-toolbar">
+            <input id="progressInput" type="range" min="0" max="221" value="0" aria-label="Track progress" />
+            <div class="progress-meta">
+              <span id="elapsedTime">0:00</span>
+              <span id="durationTime">0:00</span>
+            </div>
+            <div class="default-volume">
+              <button id="cassetteMuteButton" class="cassette-volume-icon low" type="button" aria-label="Mute volume"><i class="fa-solid fa-volume-xmark"></i></button>
+              <input id="cassetteVolumeRange" class="cassetteVolumeRange cassette-volume-input" type="range" min="0" max="100" value="72" aria-label="Volume" />
+              <span class="cassette-volume-icon high" aria-hidden="true"><i class="fa-solid fa-volume-high"></i></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="track-card" aria-label="Tracks">
+          <div id="trackList" class="track-list"></div>
+        </section>
+
+        <div class="youtube-frame"><div id="youtubePlayer">YouTube source loading…</div></div>
+
+        <button id="viewToggle" class="view-link-button" type="button">
+          <i id="viewToggleIcon" class="fa-solid fa-video" aria-hidden="true"></i>
+          <span class="youtube-dot" aria-hidden="true"></span>
+          <span id="viewToggleLabel">YouTube Source</span>
+        </button>
+
+      </section>
+    </main>
+  </div>
+
+  <script src="./data/mixtape-data.js"></script>
+  <script src="./js/app.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<div class="jcard">
+  <div class="popamp-eq-panel" aria-hidden="true">
+    <div class="popamp-panel-title">
+      <span><span class="popamp-panel-title-text">POPAMP Equalizer</span></span>
+    </div>
+    <div class="popamp-eq-body">
+      <div class="popamp-eq-toggles">
+        <div class="popamp-eq-toggle-group">
+          <input class="popamp-fake-input" type="checkbox" id="popampEqOn" checked />
+          <label class="popamp-toggle" for="popampEqOn">ON</label>
+          <input class="popamp-fake-input" type="checkbox" id="popampEqAuto" />
+          <label class="popamp-toggle" for="popampEqAuto">AUTO</label>
+        </div>
+        <button class="popamp-presets" type="button" tabindex="-1">PRESETS</button>
+      </div>
+      <div class="popamp-eq-sliders">
+        <div class="popamp-eq-guides" aria-hidden="true">
+          <span class="popamp-eq-guide-line top"></span>
+          <span class="popamp-eq-guide-line mid"></span>
+          <span class="popamp-eq-guide-line bottom"></span>
+          <span class="popamp-eq-guide-label top">+12 dB</span>
+          <span class="popamp-eq-guide-label mid">0 dB</span>
+          <span class="popamp-eq-guide-label bottom">-12 dB</span>
+        </div>
+        <div class="popamp-preamp">
+          <span class="popamp-preamp-label">PREAMP</span>
+          <div class="popamp-vertical-slider-shell tall">
+            <input id="popampPreampRange" class="popamp-fake-range popamp-fake-range-vertical tall" type="range" min="0" max="100" value="70" orient="vertical" />
+          </div>
+        </div>
+        <div class="popamp-band-grid">
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="82" orient="vertical" /></div><span>60</span></div>
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="63" orient="vertical" /></div><span>170</span></div>
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="52" orient="vertical" /></div><span>310</span></div>
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="74" orient="vertical" /></div><span>600</span></div>
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="45" orient="vertical" /></div><span>1K</span></div>
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="66" orient="vertical" /></div><span>3K</span></div>
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="84" orient="vertical" /></div><span>6K</span></div>
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="54" orient="vertical" /></div><span>12K</span></div>
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="72" orient="vertical" /></div><span>14K</span></div>
+          <div class="popamp-band"><div class="popamp-vertical-slider-shell"><input class="popamp-fake-range popamp-fake-range-vertical" type="range" min="0" max="100" value="62" orient="vertical" /></div><span>16K</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="popamp-playlist-panel">
+    <div class="popamp-panel-title">
+      <span><span class="popamp-panel-title-text">POPAMP Playlist</span></span>
+    </div>
+    <div id="trackList" class="track-list"></div>
+    <div class="popamp-playlist-footer" aria-hidden="true">
+      <div class="popamp-footer-buttons">
+        <button type="button" tabindex="-1">ADD</button>
+        <button type="button" tabindex="-1">REM</button>
+        <button type="button" tabindex="-1">SEL</button>
+        <button type="button" tabindex="-1">MISC</button>
+      </div>
+      <div id="popampFooterStatus" class="popamp-footer-status">0:00 / 0:00</div>
+      <button class="popamp-footer-listopts" type="button" tabindex="-1">LIST OPTS</button>
+    </div>
+  </div>
+</div>
