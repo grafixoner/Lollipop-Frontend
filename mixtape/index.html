@@ -8,14 +8,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./css/base.css" />
-  <link rel="stylesheet" href="./css/cassette.css" />
-  <link rel="stylesheet" href="./css/popamp.css" />
+  <link rel="stylesheet" href="/mixtape/css/base.css" />
+  <link rel="stylesheet" href="/mixtape/css/cassette.css" />
+  <link rel="stylesheet" href="/mixtape/css/popamp.css" />
 </head>
 <body>
   <div id="app" class="app-shell" data-player-state="idle" data-view="playlist">
     <main class="app-content">
       <section class="player-panel">
+        <div id="mixtapeSourceBadge" class="mixtape-source-badge hidden">Claimed Copy</div>
         <section class="media-stack" aria-label="Mixtape cassette and case">
           <section class="visual-stage" aria-label="Mixtape cassette">
             <div id="cassetteVisual"></div>
@@ -63,12 +64,14 @@
           <span id="viewToggleLabel">YouTube Source</span>
         </button>
 
+        <a id="makeMixtapeCardLink" class="make-mixtape-card-link hidden" href="https://lollipop.gg/">Make your own mixtape card</a>
+
       </section>
     </main>
   </div>
 
-  <script src="./data/mixtape-data.js"></script>
-  <script src="./js/app.js"></script>
+  <script src="/mixtape/data/mixtape-data.js"></script>
+  <script src="/mixtape/js/app.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

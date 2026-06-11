@@ -71,3 +71,48 @@ Meaning:
 - `data/mixtape-data.js` still provides a local demo manifest and optional `window.MIXTAPE_ENDPOINT`
 - Font Awesome is expected to be available from the main site path
 - cassette markup is adapted from the original CodePen structure and now lives in the `skins/` partials plus `css/cassette.css`
+
+## Claimed/saved mixtape routes
+
+The app also supports claimed cassette copies without a DB/API lookup:
+
+- `/mixtape/<fan_slug>/claimed/<claim_id>`
+- `/mixtape/<fan_slug>/claim/<claim_id>` is accepted as an alias
+
+These routes fetch `/configs/<fan_slug>.json`, read the hidden backend-managed
+`section_mixtape_claims`, find the matching `claim_id`, and render the saved
+snapshot. They do not read the creator's current live `section_mixtape`.
+
+Expected hidden section shape:
+
+```json
+{
+  "id": "section_mixtape_claims",
+  "hidden": true,
+  "managed_by": "lollipop",
+  "fields": [
+    {
+      "value": [
+        {
+          "claim_id": "mixclaim_test",
+          "source_slug": "creator-slug",
+          "snapshot_hash": "abc123",
+          "claimed_at": "2026-06-10T00:00:00Z",
+          "mixtape": {
+            "title": "Saved Cassette Test",
+            "skin": "cassette",
+            "colors": {
+              "background": "#000000",
+              "text": "#ffffff"
+            },
+            "tracks": []
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Claimed mixtapes render the same player and skins as live mixtapes, but display a
+small “Claimed Copy” badge and a subtle “Make your own mixtape card” CTA.

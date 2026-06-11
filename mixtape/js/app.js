@@ -2,15 +2,16 @@
   const DEFAULT_MANIFEST = window.MIXTAPE_DEMO || {};
   const ENDPOINT = window.MIXTAPE_ENDPOINT || "";
   const MIXTAPE_ROUTE_PREFIX = "/mixtape/";
+  const ASSET_BASE = ensureTrailingSlash(window.MIXTAPE_ASSET_BASE || "/mixtape/");
   const APP_STORE_URL = window.LOLLIPOP_APP_STORE_URL || "https://apps.apple.com/us/charts/iphone";
   const TEMPLATE_PATHS = {
-    popamp: "./skins/popamp.html",
-    popampTrackCard: "./skins/popamp-track-card.html",
-    cassetteShell: "./skins/cassette-shell.html",
-    cassetteControls: "./skins/cassette-controls.html",
-    cassetteDoor: "./skins/cassette-door.html",
-    cassetteTrackCard: "./skins/cassette-track-card.html",
-    missingMixtape: "./skins/missing-mixtape.html"
+    popamp: assetPath("skins/popamp.html"),
+    popampTrackCard: assetPath("skins/popamp-track-card.html"),
+    cassetteShell: assetPath("skins/cassette-shell.html"),
+    cassetteControls: assetPath("skins/cassette-controls.html"),
+    cassetteDoor: assetPath("skins/cassette-door.html"),
+    cassetteTrackCard: assetPath("skins/cassette-track-card.html"),
+    missingMixtape: assetPath("skins/missing-mixtape.html")
   };
   const templateCache = new Map();
   const defaultTrackCardNodes = Array.from(document.querySelector(".track-card")?.childNodes || []).map(node => node.cloneNode(true));
@@ -32,7 +33,9 @@
     prevButton:      document.getElementById("prevButton"),
     nextButton:      document.getElementById("nextButton"),
     viewToggle:      document.getElementById("viewToggle"),
-    viewToggleLabel: document.getElementById("viewToggleLabel")
+    viewToggleLabel: document.getElementById("viewToggleLabel"),
+    sourceBadge:     document.getElementById("mixtapeSourceBadge"),
+    makeCardLink:    document.getElementById("makeMixtapeCardLink")
   };
 
   const state = {
@@ -74,7 +77,9 @@
   async function init() {
     const loadResult = await maybeLoadManifest();
     if (!loadResult.ok) return;
-    document.title = state.manifest.title;
+    document.title = state.manifest.sourceType === "claimed"
+      ? `${state.manifest.title} · Claimed Mixtape`
+      : state.manifest.title;
     applySkin();
     bindEvents();
     await renderPlayerVisual();
@@ -98,7 +103,10 @@
 
       if (!response.ok) {
         if (source.kind === "config") {
-          await renderMissingMixtapePage(source.slug);
+          await renderMissingMixtapePage(source.slug, {
+            mode: source.mode,
+            claimId: source.claimId
+          });
           return { ok: false, source: "missing-config" };
         }
         throw new Error(`Manifest fetch failed: ${response.status}`);
@@ -107,13 +115,16 @@
       const payload = await response.json();
 
       if (source.kind === "config") {
-        const manifest = manifestFromConfig(payload, source.slug);
+        const manifest = manifestFromConfig(payload, source);
         if (!manifest) {
-          await renderMissingMixtapePage(source.slug);
-          return { ok: false, source: "missing-mixtape-section" };
+          await renderMissingMixtapePage(source.slug, {
+            mode: source.mode,
+            claimId: source.claimId
+          });
+          return { ok: false, source: source.mode === "claimed" ? "missing-mixtape-claim" : "missing-mixtape-section" };
         }
         state.manifest = normalizeManifest(manifest);
-        return { ok: true, source: "config" };
+        return { ok: true, source: source.mode === "claimed" ? "claimed-config" : "config" };
       }
 
       state.manifest = normalizeManifest(payload);
@@ -121,7 +132,10 @@
     } catch (err) {
       if (source.kind === "config") {
         console.warn("Unable to load mixtape config.", err);
-        await renderMissingMixtapePage(source.slug);
+        await renderMissingMixtapePage(source.slug, {
+          mode: source.mode,
+          claimId: source.claimId
+        });
         return { ok: false, source: "config-error" };
       }
       console.warn("Using demo manifest fallback.", err);
@@ -134,22 +148,37 @@
       return { kind: "endpoint", url: ENDPOINT };
     }
 
-    const slug = slugFromLocation(window.location.pathname);
-    if (!slug) return null;
+    const route = parseMixtapeRoute(window.location.pathname);
+    if (route.mode === "demo") return null;
 
     return {
       kind: "config",
-      slug,
-      url: new URL(`/configs/${slug}.json`, window.location.origin).toString()
+      mode: route.mode,
+      slug: route.slug,
+      claimId: route.claimId,
+      url: new URL(`/configs/${route.slug}.json`, window.location.origin).toString()
     };
   }
 
-  function slugFromLocation(pathname) {
+  function parseMixtapeRoute(pathname) {
     const value = String(pathname || "");
-    if (!value.startsWith(MIXTAPE_ROUTE_PREFIX)) return "";
+    if (!value.startsWith(MIXTAPE_ROUTE_PREFIX)) {
+      return { mode: "demo", slug: "", claimId: "" };
+    }
 
-    const slug = value.slice(MIXTAPE_ROUTE_PREFIX.length).split("/")[0];
-    return sanitizeSlug(slug);
+    const raw = value.slice(MIXTAPE_ROUTE_PREFIX.length);
+    const parts = raw.split("/").filter(Boolean);
+    const slug = sanitizeSlug(parts[0] || "");
+    const action = String(parts[1] || "").toLowerCase();
+    const claimId = sanitizeClaimId(parts[2] || "");
+
+    if (slug && (action === "claimed" || action === "claim") && claimId) {
+      return { mode: "claimed", slug, claimId };
+    }
+
+    if (slug) return { mode: "live", slug, claimId: "" };
+
+    return { mode: "demo", slug: "", claimId: "" };
   }
 
   function sanitizeSlug(value) {
@@ -158,7 +187,25 @@
       .replace(/[^a-z0-9_-]/gi, "");
   }
 
-  function manifestFromConfig(config, slug) {
+  function sanitizeClaimId(value) {
+    return String(value || "")
+      .trim()
+      .replace(/[^a-z0-9_-]/gi, "");
+  }
+
+  function manifestFromConfig(config, source) {
+    if (typeof source === "string") {
+      source = { mode: "live", slug: source, claimId: "" };
+    }
+
+    if (source?.mode === "claimed") {
+      return manifestFromClaimedConfig(config, source.slug, source.claimId);
+    }
+
+    return manifestFromLiveConfig(config, source?.slug || "");
+  }
+
+  function manifestFromLiveConfig(config, slug) {
     const sections = Array.isArray(config?.section) ? config.section : [];
     const mixtapeSection = sections.find(section => section?.id === "section_mixtape");
     if (!mixtapeSection) return null;
@@ -172,11 +219,62 @@
       title,
       skin: fields[5]?.value || "cassette",
       mysteryMode: fields[6]?.value !== false,
+      sourceType: "live",
+      sourceSlug: slug,
       theme: {
         backgroundColor: normalizeThemeColor(fields[2]?.value),
         textColor: normalizeThemeColor(fields[3]?.value)
       },
       tracks: rawTracks
+    };
+  }
+
+  function manifestFromClaimedConfig(config, slug, claimId) {
+    const sections = Array.isArray(config?.section) ? config.section : [];
+    const claimsSection = sections.find(section => section?.id === "section_mixtape_claims");
+    if (!claimsSection) return null;
+
+    const fields = Array.isArray(claimsSection.fields) ? claimsSection.fields : [];
+    const claims = Array.isArray(fields[0]?.value) ? fields[0].value : [];
+
+    let claim = claims.find(item => {
+      const id = String(item?.claim_id || item?.claimId || "").trim();
+      return id === claimId;
+    });
+
+    if (!claim && claims.length === 1) {
+      claim = claims[0];
+      console.warn(`Claim ${claimId} was not found. Rendering the only saved mixtape claim instead.`);
+    }
+
+    if (!claim) return null;
+
+    const mixtape = claim.mixtape || {};
+    const colors = mixtape.colors || mixtape.theme || {};
+    const tracks = Array.isArray(mixtape.tracks)
+      ? mixtape.tracks
+      : Array.isArray(claim.tracks)
+        ? claim.tracks
+        : [];
+    const title = String(mixtape.title || claim.title || "").trim() || "Claimed MixTape";
+
+    return {
+      id: String(claim.claim_id || claim.claimId || claimId || "claimed-mixtape"),
+      claimId: String(claim.claim_id || claim.claimId || claimId || ""),
+      title,
+      skin: mixtape.skin || claim.skin || "cassette",
+      mysteryMode: mixtape.mysteryMode !== false,
+      sourceType: "claimed",
+      ownerSlug: slug,
+      sourceSlug: claim.source_slug || claim.sourceSlug || "",
+      creatorWallet: claim.creator_wallet || claim.creatorWallet || "",
+      snapshotHash: claim.snapshot_hash || claim.snapshotHash || "",
+      claimedAt: claim.claimed_at || claim.claimedAt || "",
+      theme: {
+        backgroundColor: normalizeThemeColor(colors.background || colors.backgroundColor),
+        textColor: normalizeThemeColor(colors.text || colors.textColor)
+      },
+      tracks
     };
   }
 
@@ -217,26 +315,69 @@
     }
   }
 
-  async function renderMissingMixtapePage(slug) {
+  async function renderMissingMixtapePage(slug, options = {}) {
+    const mode = options.mode || "live";
     const displaySlug = humanizeSlug(slug) || "This Mixtape";
-    document.title = `${displaySlug} Not Found`;
+    const isClaimed = mode === "claimed";
+    const copy = missingMixtapeCopy(displaySlug, isClaimed);
+    document.title = copy.documentTitle;
 
     els.app.dataset.skin = "missing";
     els.app.dataset.view = "playlist";
+    els.app.dataset.sourceType = isClaimed ? "claimed" : "live";
     const view = await instantiateTemplate(TEMPLATE_PATHS.missingMixtape);
     if (!view) {
-      els.app.replaceChildren(buildMissingMixtapeFallback(displaySlug));
+      els.app.replaceChildren(buildMissingMixtapeFallback(copy));
       return;
     }
 
+    const kicker = view.querySelector(".missing-mixtape-kicker");
     const title = view.querySelector("#missingMixtapeTitle");
+    const bodyCopy = view.querySelector(".missing-mixtape-copy");
     const appStoreLink = view.querySelector('[data-role="app-store-link"]');
-    if (title) title.textContent = `${displaySlug} is not live yet.`;
-    if (appStoreLink instanceof HTMLAnchorElement) appStoreLink.href = APP_STORE_URL;
+    const secondaryLink = view.querySelector(".missing-mixtape-button.secondary");
+
+    if (kicker) kicker.textContent = copy.kicker;
+    if (title) title.textContent = copy.title;
+    if (bodyCopy) bodyCopy.textContent = copy.body;
+    if (appStoreLink instanceof HTMLAnchorElement) {
+      appStoreLink.href = copy.primaryHref;
+      appStoreLink.textContent = copy.primaryLabel;
+    }
+    if (secondaryLink instanceof HTMLAnchorElement) {
+      secondaryLink.href = copy.secondaryHref;
+      secondaryLink.textContent = copy.secondaryLabel;
+    }
     els.app.replaceChildren(view);
   }
 
-  function buildMissingMixtapeFallback(displaySlug) {
+  function missingMixtapeCopy(displaySlug, isClaimed) {
+    if (isClaimed) {
+      return {
+        documentTitle: "Cassette Not Found",
+        kicker: "Cassette Not Found",
+        title: "This saved mixtape could not be found.",
+        body: "This cassette copy may not exist in this profile config yet, or the link may be wrong.",
+        primaryHref: "https://lollipop.gg/",
+        primaryLabel: "Make Your Own Mixtape",
+        secondaryHref: "https://lollipop.gg/",
+        secondaryLabel: "Go to Lollipop"
+      };
+    }
+
+    return {
+      documentTitle: `${displaySlug} Not Found`,
+      kicker: "Mixtape Not Found",
+      title: `${displaySlug} is not live yet.`,
+      body: "Build your own mixtape in Lollipop, publish it to your link, and share a page that feels like a real collectible.",
+      primaryHref: APP_STORE_URL,
+      primaryLabel: "Download The App",
+      secondaryHref: "https://lollipop.gg/",
+      secondaryLabel: "Make Your Own Mixtape"
+    };
+  }
+
+  function buildMissingMixtapeFallback(copy) {
     const main = document.createElement("main");
     main.className = "app-content missing-mixtape-shell";
 
@@ -246,31 +387,31 @@
 
     const kicker = document.createElement("p");
     kicker.className = "missing-mixtape-kicker";
-    kicker.textContent = "Mixtape Not Found";
+    kicker.textContent = copy.kicker;
 
     const title = document.createElement("h1");
     title.id = "missingMixtapeTitle";
-    title.textContent = `${displaySlug} is not live yet.`;
+    title.textContent = copy.title;
 
-    const copy = document.createElement("p");
-    copy.className = "missing-mixtape-copy";
-    copy.textContent = "Build your own mixtape in Lollipop, publish it to your link, and share a page that feels like a real collectible.";
+    const body = document.createElement("p");
+    body.className = "missing-mixtape-copy";
+    body.textContent = copy.body;
 
     const actions = document.createElement("div");
     actions.className = "missing-mixtape-actions";
 
     const appStoreLink = document.createElement("a");
     appStoreLink.className = "missing-mixtape-button primary";
-    appStoreLink.href = APP_STORE_URL;
-    appStoreLink.textContent = "Download The App";
+    appStoreLink.href = copy.primaryHref;
+    appStoreLink.textContent = copy.primaryLabel;
 
     const mixtapeLink = document.createElement("a");
     mixtapeLink.className = "missing-mixtape-button secondary";
-    mixtapeLink.href = "https://lollipop.gg/";
-    mixtapeLink.textContent = "Make Your Own Mixtape";
+    mixtapeLink.href = copy.secondaryHref;
+    mixtapeLink.textContent = copy.secondaryLabel;
 
     actions.append(appStoreLink, mixtapeLink);
-    card.append(kicker, title, copy, actions);
+    card.append(kicker, title, body, actions);
     main.appendChild(card);
     return main;
   }
@@ -284,6 +425,13 @@
       skin:        normalizeSkin(manifest.skin),
       sideLabel:   manifest.sideLabel || "Side A",
       mysteryMode: manifest.mysteryMode !== false,
+      sourceType:  manifest.sourceType || "live",
+      claimId:     manifest.claimId || "",
+      ownerSlug:   manifest.ownerSlug || "",
+      sourceSlug:  manifest.sourceSlug || "",
+      creatorWallet: manifest.creatorWallet || "",
+      snapshotHash: manifest.snapshotHash || "",
+      claimedAt:   manifest.claimedAt || "",
       viewLink:    manifest.viewLink || tracks[0]?.externalUrl || "#",
       theme: {
         backgroundColor: normalizeThemeColor(manifest?.theme?.backgroundColor || manifest.backgroundColor),
@@ -473,7 +621,9 @@
 
   function applySkin() {
     els.app.dataset.skin = state.manifest.skin;
+    els.app.dataset.sourceType = state.manifest.sourceType || "live";
     applyDefaultTheme();
+    updateSourceExtras();
   }
 
   function applyDefaultTheme() {
@@ -1082,6 +1232,7 @@
   }
 
   function updateUI() {
+    updateSourceExtras();
     const track         = currentTrack();
     const duration      = Math.max(1, Number(state.duration || track.seconds || 1));
     const progressPct   = Math.max(0, Math.min(100, (state.position / duration) * 100));
@@ -1119,6 +1270,24 @@
     syncPopampTransportState();
     updatePopampDisplay();
     syncPopampToggles();
+  }
+
+  function updateSourceExtras() {
+    const isClaimed = state.manifest?.sourceType === "claimed";
+
+    if (els.sourceBadge) {
+      els.sourceBadge.classList.toggle("hidden", !isClaimed);
+      els.sourceBadge.textContent = "Claimed Copy";
+      if (isClaimed && state.manifest.sourceSlug) {
+        els.sourceBadge.title = `Saved from ${state.manifest.sourceSlug}`;
+      } else {
+        els.sourceBadge.removeAttribute("title");
+      }
+    }
+
+    if (els.makeCardLink) {
+      els.makeCardLink.classList.toggle("hidden", !isClaimed);
+    }
   }
 
   function updatePopampDisplay() {
@@ -1496,6 +1665,15 @@
   }
 
   /* ── Helpers ── */
+  function ensureTrailingSlash(value) {
+    const text = String(value || "").trim() || "/";
+    return text.endsWith("/") ? text : `${text}/`;
+  }
+
+  function assetPath(path) {
+    return new URL(String(path || "").replace(/^\/+/, ""), window.location.origin + ASSET_BASE).toString();
+  }
+
   function visibleTrackTitle(track, index) {
     const visible = isTrackVisible(index);
     if (!visible) return `Track ${String(index + 1).padStart(2, "0")}`;
