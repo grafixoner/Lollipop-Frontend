@@ -16,6 +16,7 @@
   inherits: false;
   initial-value: .82;
 }
+/* OVERRIDES OF BASE */
 body {
   background: black;
 }
@@ -28,9 +29,13 @@ body {
   background: rgba(0, 0, 0, .22);
 }
 .player-panel {
-  padding-top: 30px;
+  padding-top: 35px;
 
 }
+@media (max-height: 760px) {
+  .controls { padding-top: 43px; }
+}
+
 /* ── Cassette shell wrapper ── */
 .manz-cassette-skin {
   --left-tape-scale: calc(1 - (var(--track-progress) * .22));
@@ -176,6 +181,10 @@ body {
 [data-skin="cassette"] .popamp-playlist-panel {
   display: block;
   min-height: 0;
+}
+
+[data-skin="cassette"] .view-link-button {
+  display: none;
 }
 
 [data-skin="cassette"] .jcard-print {
@@ -994,9 +1003,21 @@ body {
 
 .door-sticker-youtube {
   right: 4.5%;
-      top: 76%;
-      width: 24%;
-      transform: rotate(3deg);
+  top: 76%;
+  width: 24%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: rotate(3deg);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.door-sticker-youtube:focus-visible {
+  outline: 2px solid rgba(255,255,255,.86);
+  outline-offset: 3px;
 }
 
 .door-sticker-youtube .door-sticker-paper {

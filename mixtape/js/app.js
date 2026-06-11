@@ -459,6 +459,19 @@
     els.cassetteVisual.closest(".visual-stage")?.addEventListener("click", handleCassetteVisualClick);
     bindPrimaryControls();
 
+    document.addEventListener("click", (event) => {
+      const sticker = event.target instanceof Element
+        ? event.target.closest(".door-sticker-youtube")
+        : null;
+      if (!sticker || state.manifest.skin !== "cassette") return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      unlockAudio();
+      playButtonClickSound("light");
+      toggleView();
+    }, true);
+
     document.addEventListener("input", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) return;
@@ -532,7 +545,7 @@
       }
     });
 
-    els.viewToggle.addEventListener("click", () => {
+    els.viewToggle?.addEventListener("click", () => {
       playButtonClickSound("light");
       toggleView();
     });
@@ -1647,16 +1660,16 @@
     state.view = view === "source" ? "source" : "playlist";
     els.app.dataset.view = state.view;
     if (state.manifest.skin === "popamp") {
-      els.viewToggleLabel.textContent = state.view === "source" ? "Playlist" : "Video";
+      if (els.viewToggleLabel) els.viewToggleLabel.textContent = state.view === "source" ? "Playlist" : "Video";
       els.viewToggle?.setAttribute("aria-label", state.view === "source" ? "Show playlist" : "Show video");
       return;
     }
     if (state.manifest.skin === "default") {
-      els.viewToggleLabel.textContent = state.view === "source" ? "Tracks" : "Video";
+      if (els.viewToggleLabel) els.viewToggleLabel.textContent = state.view === "source" ? "Tracks" : "Video";
       els.viewToggle?.setAttribute("aria-label", state.view === "source" ? "Show tracks" : "Show video");
       return;
     }
-    els.viewToggleLabel.textContent = state.view === "source" ? "Tape Tracks" : "Music Video";
+    if (els.viewToggleLabel) els.viewToggleLabel.textContent = state.view === "source" ? "Tape Tracks" : "Music Video";
     els.viewToggle?.setAttribute("aria-label", state.view === "source" ? "Show tracks" : "Show music video");
   }
 
