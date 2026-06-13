@@ -1130,9 +1130,25 @@ body {
     0 2px 5px rgba(0,0,0,.24);
 }
 
+.deck-door-open-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3.6%;
+  text-align: center;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(6px, 1.6vw, 9px);
+  font-weight: 600;
+  letter-spacing: .42em;
+  text-indent: .42em;
+  color: rgba(255, 255, 255, .38);
+  text-shadow: 0 0 3px rgba(255, 255, 255, .22);
+}
+
 .deck-door,
 .deck-door-window,
 .deck-door-handle,
+.deck-door-open-label,
 .deck-door::before {
   pointer-events: none;
 }

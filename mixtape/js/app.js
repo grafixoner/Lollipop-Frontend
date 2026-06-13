@@ -40,6 +40,7 @@
 
   const state = {
     manifest:      normalizeManifest(DEFAULT_MANIFEST),
+    manifestReady: false,
     player:        null,
     ytApiReady:    false,
     playerReady:   false,
@@ -77,6 +78,7 @@
   async function init() {
     const loadResult = await maybeLoadManifest();
     if (!loadResult.ok) return;
+    state.manifestReady = true;
     document.title = state.manifest.sourceType === "claimed"
       ? `${state.manifest.title} · Claimed Mixtape`
       : state.manifest.title;
@@ -92,6 +94,12 @@
       createYouTubePlayer();
     }
     startTimer();
+
+    if (loadResult.source === "config" || loadResult.source === "claimed-config") {
+      mixtapeAnalyticsEnabled = true;
+      trackMixtapeViewOnce();
+      if (shareEntryDetected()) trackMixtapeShareOpenOnce();
+    }
   }
 
   async function maybeLoadManifest() {
@@ -117,6 +125,9 @@
       if (source.kind === "config") {
         const manifest = manifestFromConfig(payload, source);
         if (!manifest) {
+          console.debug(source.mode === "claimed"
+            ? "[mixtape] claimed claim_id not found"
+            : "[mixtape] missing section_mixtape");
           await renderMissingMixtapePage(source.slug, {
             mode: source.mode,
             claimId: source.claimId
@@ -454,10 +465,238 @@
     };
   }
 
+  /* ── Analytics ── */
+  const ANALYTICS_PATH = "/lollipop/analytics/event";
+  let mixtapeAnalyticsEnabled = false;
+  let mixtapeViewTracked = false;
+  let mixtapeShareOpenTracked = false;
+  const trackedMixtapeReveals = new Set();
+
+  function analyticsDebugEnabled() {
+    return Boolean(window.LOLLIPOP_DEBUG || window.__LOLLIPOP_DEBUG__);
+  }
+
+  function analyticsEndpointUrl() {
+    // Same convention as frontend/js/lollipop_analytics.js: an explicit
+    // apiurl override wins, otherwise pick the analytics host by environment.
+    const override = window.LOLLIPOP_ANALYTICS_URL
+      || window.lollipop?.analytics?.apiurl
+      || window.lollipop?.analyticsurl;
+    if (override) return String(override).replace(/\/$/, "") + ANALYTICS_PATH;
+
+    const hostname = String(window.location.hostname || "").toLowerCase();
+    const isLocal = hostname === "localhost"
+      || hostname === "127.0.0.1"
+      || hostname.startsWith("local.")
+      || hostname.includes("local.lollipop.gg");
+
+    return (isLocal
+      ? "https://analyticslocal.lollipop.gg"
+      : "https://analytics.lollipop.gg") + ANALYTICS_PATH;
+  }
+
+  function cleanMixtapeAnalyticsObject(value) {
+    if (Array.isArray(value)) {
+      return value
+        .map(cleanMixtapeAnalyticsObject)
+        .filter(item => item !== null && item !== undefined);
+    }
+
+    if (value && typeof value === "object") {
+      const out = {};
+
+      Object.entries(value).forEach(([key, child]) => {
+        const cleaned = cleanMixtapeAnalyticsObject(child);
+
+        if (cleaned === null || cleaned === undefined || cleaned === "") return;
+        if (
+          typeof cleaned === "object" &&
+          !Array.isArray(cleaned) &&
+          Object.keys(cleaned).length === 0
+        ) return;
+        if (Array.isArray(cleaned) && cleaned.length === 0) return;
+
+        out[key] = cleaned;
+      });
+
+      return out;
+    }
+
+    return value;
+  }
+
+  function getMixtapeAnalyticsPayload() {
+    const manifest = state.manifest || {};
+    const isClaimed = manifest.sourceType === "claimed";
+
+    return cleanMixtapeAnalyticsObject({
+      claim_id: isClaimed ? manifest.claimId : undefined,
+      slug: isClaimed ? manifest.ownerSlug : undefined,
+      source_slug: manifest.sourceSlug,
+      snapshot_hash: isClaimed ? manifest.snapshotHash : undefined,
+      claimed_at: isClaimed ? manifest.claimedAt : undefined,
+      title: manifest.title,
+      skin: manifest.skin,
+      track_count: Array.isArray(manifest.tracks) ? manifest.tracks.length : 0,
+      route_kind: isClaimed ? "claimed" : "live"
+    });
+  }
+
+  function getTrackAnalyticsPayload(track, index) {
+    track = track || {};
+
+    return cleanMixtapeAnalyticsObject({
+      youtube_video_id: track.youtubeVideoId,
+      track_index: typeof index === "number" && index >= 0 ? index : undefined,
+      title: track.title,
+      artist: track.artist,
+      duration_seconds: track.seconds,
+      external_url: track.externalUrl
+    });
+  }
+
+  function sendMixtapeAnalytics(eventType, options = {}) {
+    if (!mixtapeAnalyticsEnabled) {
+      if (analyticsDebugEnabled()) console.debug("[mixtape] analytics skipped", eventType);
+      return;
+    }
+
+    const payload = cleanMixtapeAnalyticsObject({
+      event_type: eventType,
+      source: "mixtape",
+      client: "mixtape-display",
+      platform: "web",
+      mixtape: options.mixtape || getMixtapeAnalyticsPayload(),
+      track: options.track,
+      action: options.action,
+      commerce: options.commerce
+    });
+
+    try {
+      if (analyticsDebugEnabled()) {
+        console.debug("[mixtape] analytics queued", eventType, payload);
+      }
+
+      const url = analyticsEndpointUrl();
+      const json = JSON.stringify(payload);
+
+      // Match frontend/js/lollipop_analytics.js: send as a "simple" CORS
+      // request (text/plain, no credentials, no custom headers) so the
+      // analytics service never needs to answer a preflight.
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, new Blob([json], { type: "text/plain;charset=UTF-8" }));
+        return;
+      }
+
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: json,
+        keepalive: true,
+        mode: "cors",
+        credentials: "include"
+      }).then(response => {
+        if (analyticsDebugEnabled()) {
+          console.debug("[mixtape] analytics response", eventType, response.status);
+        }
+      }).catch(error => {
+        if (analyticsDebugEnabled()) {
+          console.debug("[mixtape] analytics failed", eventType, error);
+        }
+      });
+    } catch (error) {
+      if (analyticsDebugEnabled()) {
+        console.debug("[mixtape] analytics exception", eventType, error);
+      }
+    }
+  }
+
+  function trackMixtapeViewOnce() {
+    if (mixtapeViewTracked) return;
+    mixtapeViewTracked = true;
+
+    sendMixtapeAnalytics("mixtape_view", {
+      action: {
+        location: "player",
+        route: window.location.pathname
+      }
+    });
+  }
+
+  function shareEntryDetected() {
+    const params = new URLSearchParams(window.location.search || "");
+    return params.get("share") === "1"
+      || params.get("source") === "share"
+      || params.get("entry") === "share";
+  }
+
+  function trackMixtapeShareOpenOnce() {
+    if (mixtapeShareOpenTracked) return;
+    mixtapeShareOpenTracked = true;
+
+    sendMixtapeAnalytics("mixtape_share_open", {
+      action: {
+        location: "player",
+        entry: "share"
+      }
+    });
+  }
+
+  function trackMixtapePlayStart(track, index) {
+    sendMixtapeAnalytics("mixtape_play_start", {
+      track: getTrackAnalyticsPayload(track, index),
+      action: {
+        location: "player",
+        label: "Play"
+      }
+    });
+  }
+
+  function trackMixtapeOpenYouTube(track, index) {
+    sendMixtapeAnalytics("mixtape_open_youtube", {
+      track: getTrackAnalyticsPayload(track, index),
+      action: {
+        location: "player",
+        target: "youtube",
+        label: "Open YouTube"
+      }
+    });
+  }
+
+  function trackMixtapeRevealOnce(track, index) {
+    const payload = getTrackAnalyticsPayload(track, index);
+    const key = payload.youtube_video_id || `track:${index}`;
+    if (trackedMixtapeReveals.has(key)) return;
+    trackedMixtapeReveals.add(key);
+
+    sendMixtapeAnalytics("mixtape_track_reveal", {
+      track: payload,
+      action: {
+        location: "player",
+        label: "Track revealed"
+      }
+    });
+  }
+
+  function trackMixtapeOrderTapCardTap() {
+    sendMixtapeAnalytics("mixtape_order_tap_card_tap", {
+      action: {
+        location: "player",
+        label: "Make your own mixtape card",
+        target: "mixtape_card_cta"
+      }
+    });
+  }
+
   /* ── Events ── */
   function bindEvents() {
     els.cassetteVisual.closest(".visual-stage")?.addEventListener("click", handleCassetteVisualClick);
     bindPrimaryControls();
+
+    if (els.makeCardLink && els.makeCardLink.dataset.analyticsBound !== "true") {
+      els.makeCardLink.addEventListener("click", trackMixtapeOrderTapCardTap);
+      els.makeCardLink.dataset.analyticsBound = "true";
+    }
 
     document.addEventListener("click", (event) => {
       const sticker = event.target instanceof Element
@@ -562,6 +801,9 @@
 
       if (target.id === "popampChipEq") {
         state.playlistPanelVisible = true;
+        if (!target.checked && state.view !== "source") {
+          trackMixtapeOpenYouTube(currentTrack(), state.currentIndex);
+        }
         setView(target.checked ? "playlist" : "source");
         updateUI();
         return;
@@ -588,12 +830,12 @@
     }
 
     if (els.nextButton && els.nextButton.dataset.bound !== "true") {
-      els.nextButton.addEventListener("click", press(els.nextButton, () => nextTrack(true)));
+      els.nextButton.addEventListener("click", press(els.nextButton, () => nextTrack(true, true)));
       els.nextButton.dataset.bound = "true";
     }
 
     if (els.prevButton && els.prevButton.dataset.bound !== "true") {
-      els.prevButton.addEventListener("click", press(els.prevButton, () => prevTrack(true)));
+      els.prevButton.addEventListener("click", press(els.prevButton, () => prevTrack(true, true)));
       els.prevButton.dataset.bound = "true";
     }
 
@@ -681,7 +923,9 @@
 
   /* ── YouTube player ── */
   function createYouTubePlayer() {
-    if (!state.ytApiReady || state.player || !window.YT?.Player) return;
+    /* Wait for the manifest: the YT API can finish loading before the config
+       fetch resolves, and creating the player then would cue the demo track. */
+    if (!state.manifestReady || !state.ytApiReady || state.player || !window.YT?.Player) return;
     const track = currentTrack();
     state.duration = track.seconds || 1;
 
@@ -844,11 +1088,11 @@
     const next = document.getElementById("popampNextButton");
     const eject = document.getElementById("popampEjectButton");
 
-    prev?.addEventListener("click", press(prev, () => prevTrack(true)));
-    play?.addEventListener("click", press(play, playCurrent));
+    prev?.addEventListener("click", press(prev, () => prevTrack(true, true)));
+    play?.addEventListener("click", press(play, () => playCurrent(true)));
     pause?.addEventListener("click", press(pause, pausePlayback));
     stop?.addEventListener("click", press(stop, stopPlayback));
-    next?.addEventListener("click", press(next, () => nextTrack(true)));
+    next?.addEventListener("click", press(next, () => nextTrack(true, true)));
     eject?.addEventListener("click", press(eject, toggleView));
   }
 
@@ -1031,7 +1275,7 @@
       row.addEventListener("click", () => {
         unlockAudio();
         playButtonClickSound("light");
-        selectTrack(Number(row.dataset.index), true);
+        selectTrack(Number(row.dataset.index), true, true);
       });
     });
   }
@@ -1073,7 +1317,7 @@
       row.addEventListener("click", () => {
         unlockAudio();
         playButtonClickSound("light");
-        selectTrack(Number(row.dataset.index), true);
+        selectTrack(Number(row.dataset.index), true, true);
       });
     });
   }
@@ -1086,7 +1330,7 @@
     };
   }
 
-  function playCurrent() {
+  function playCurrent(userInitiated = false) {
     const track = currentTrack();
     reveal(state.currentIndex);
 
@@ -1108,6 +1352,7 @@
       state.playing = true;
       state.transportMode = "playing";
       setStatus("PLAYING");
+      if (userInitiated) trackMixtapePlayStart(track, state.currentIndex);
     } catch (err) {
       console.warn("Play failed", err);
       setStatus("TAP SOURCE");
@@ -1154,7 +1399,7 @@
 
   function togglePlayback() {
     if (state.playing) pausePlayback();
-    else playCurrent();
+    else playCurrent(true);
   }
 
   function handleTrackEnded() {
@@ -1174,20 +1419,20 @@
     playCurrent();
   }
 
-  function nextTrack(shouldPlay = true) {
+  function nextTrack(shouldPlay = true, userInitiated = false) {
     if (state.popampShuffleEnabled) {
-      selectTrack(nextShuffleIndex(), shouldPlay);
+      selectTrack(nextShuffleIndex(), shouldPlay, userInitiated);
       return;
     }
-    selectTrack(state.currentIndex + 1, shouldPlay);
+    selectTrack(state.currentIndex + 1, shouldPlay, userInitiated);
   }
 
-  function prevTrack(shouldPlay = true) {
+  function prevTrack(shouldPlay = true, userInitiated = false) {
     /* Restart current track if more than 4 seconds in; otherwise go back */
-    selectTrack(state.position > 4 ? state.currentIndex : state.currentIndex - 1, shouldPlay);
+    selectTrack(state.position > 4 ? state.currentIndex : state.currentIndex - 1, shouldPlay, userInitiated);
   }
 
-  function selectTrack(index, shouldPlay = true) {
+  function selectTrack(index, shouldPlay = true, userInitiated = false) {
     const length = state.manifest.tracks.length;
     if (!length) return;
     state.currentIndex = (index + length) % length;
@@ -1198,7 +1443,7 @@
     markCurrentTrackAsShuffled();
     renderTrackList();
     updateUI();
-    if (shouldPlay) playCurrent();
+    if (shouldPlay) playCurrent(userInitiated);
     else cueCurrent();
   }
 
@@ -1215,7 +1460,9 @@
   }
 
   function reveal(index) {
+    const isNewReveal = state.manifest.mysteryMode && !state.revealed.has(index);
     state.revealed.add(index);
+    if (isNewReveal) trackMixtapeRevealOnce(state.manifest.tracks[index], index);
   }
 
   /* ── Sync & UI ── */
@@ -1674,7 +1921,9 @@
   }
 
   function toggleView() {
-    setView(state.view === "source" ? "playlist" : "source");
+    const nextView = state.view === "source" ? "playlist" : "source";
+    if (nextView === "source") trackMixtapeOpenYouTube(currentTrack(), state.currentIndex);
+    setView(nextView);
   }
 
   /* ── Helpers ── */
