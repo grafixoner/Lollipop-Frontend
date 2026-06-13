@@ -5,6 +5,7 @@
   const ASSET_BASE = ensureTrailingSlash(window.MIXTAPE_ASSET_BASE || "/mixtape/");
   const APP_STORE_URL = window.LOLLIPOP_APP_STORE_URL || "https://apps.apple.com/us/charts/iphone";
   const DEFAULT_LABEL_COLOR = "#6fcdde";
+  const SUPPORTED_SKINS = new Set(["default", "cassette", "popamp"]);
   const TEMPLATE_PATHS = {
     popamp: assetPath("skins/popamp.html"),
     popampTrackCard: assetPath("skins/popamp-track-card.html"),
@@ -34,6 +35,7 @@
     prevButton:      document.getElementById("prevButton"),
     nextButton:      document.getElementById("nextButton"),
     viewToggle:      document.getElementById("viewToggle"),
+    viewToggleIcon:  document.getElementById("viewToggleIcon"),
     viewToggleLabel: document.getElementById("viewToggleLabel"),
     sourceBadge:     document.getElementById("mixtapeSourceBadge"),
     makeCardLink:    document.getElementById("makeMixtapeCardLink")
@@ -61,6 +63,7 @@
     cassetteDoorOpen: false,
     cassetteDoorReadyTimer: null,
     playlistPanelVisible: true,
+    popampEqPanelVisible: true,
     popampVolume: 72,
     popampPreamp: 70,
     popampBalance: 50,
@@ -68,6 +71,8 @@
     popampRepeatEnabled: true,
     shuffleRemaining: [],
     popampVizMode: "matrix",
+    popampVideoLocation: "top",
+    popampPlaylistGridHidden: false,
     labelColor: resolveLabelColorFromUrl()
   };
 
@@ -75,8 +80,13 @@
      spectrum matrix when tapped (discrete buttons only — NOT the preamp, which
      fades the video, and NOT the EQ band sliders, which force the spectrum). */
   const POPAMP_FAKE_SWAP_OUT =
-    ".popamp-chip-button, .popamp-wide-button, .popamp-toggle, .popamp-presets," +
-    " .popamp-footer-buttons, .popamp-footer-listopts";
+    ".popamp-wide-button, .popamp-toggle, .popamp-presets";
+
+  const POPAMP_PLAYLIST_VIDEO_BUTTONS =
+    ".popamp-playlist-panel .popamp-footer-buttons button";
+
+  const POPAMP_PLAYLIST_GRID_BUTTON =
+    ".popamp-playlist-panel .popamp-footer-listopts";
 
   window.onYouTubeIframeAPIReady = () => {
     state.ytApiReady = true;
@@ -84,6 +94,8 @@
   };
 
   document.addEventListener("DOMContentLoaded", init);
+  window.addEventListener("resize", () => requestAnimationFrame(syncPopampVideoFrameRect));
+  window.addEventListener("orientationchange", () => requestAnimationFrame(syncPopampVideoFrameRect));
 
   async function init() {
     try {
@@ -100,6 +112,7 @@
       setView("playlist");
       updateUI();
       syncEqualizerSliderColors();
+      syncPopampVideoFrameRect();
       if (window.YT?.Player) {
         state.ytApiReady = true;
         createYouTubePlayer();
@@ -242,7 +255,7 @@
     return {
       id: slug || "mixtape",
       title,
-      skin: fields[5]?.value || "cassette",
+      skin: resolveManifestSkin(fields[5]?.value),
       mysteryMode: fields[6]?.value !== false,
       sourceType: "live",
       sourceSlug: slug,
@@ -287,7 +300,7 @@
       id: String(claim.claim_id || claim.claimId || claimId || "claimed-mixtape"),
       claimId: String(claim.claim_id || claim.claimId || claimId || ""),
       title,
-      skin: mixtape.skin || claim.skin || "cassette",
+      skin: resolveManifestSkin(mixtape.skin || claim.skin),
       mysteryMode: mixtape.mysteryMode !== false,
       sourceType: "claimed",
       ownerSlug: slug,
@@ -729,6 +742,27 @@
       if (state.manifest.skin !== "popamp") return;
       const el = event.target instanceof Element ? event.target : null;
       if (!el || el.closest("#popampPreampRange")) return;
+
+      const playlistGridButton = el.closest(POPAMP_PLAYLIST_GRID_BUTTON);
+      if (playlistGridButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (state.popampVideoLocation === "playlist") {
+          togglePopampPlaylistVideoGrid();
+        } else {
+          togglePopampVideoLocation();
+        }
+        return;
+      }
+
+      const playlistVideoButton = el.closest(POPAMP_PLAYLIST_VIDEO_BUTTONS);
+      if (playlistVideoButton) {
+        event.preventDefault();
+        event.stopPropagation();
+        togglePopampVideoLocation();
+        return;
+      }
+
       if (el.closest(POPAMP_FAKE_SWAP_OUT)) togglePopampViz();
     });
 
@@ -811,7 +845,8 @@
     els.viewToggle?.addEventListener("click", () => {
       playButtonClickSound("light");
       if (state.manifest.skin === "popamp") {
-        setPopampViz(state.popampVizMode === "video" ? "matrix" : "video");
+        togglePopampVideoLocation();
+        syncViewToggleChrome();
         return;
       }
       toggleView();
@@ -824,12 +859,15 @@
       // Viz toggling for these chips is handled by the delegated click
       // listener above; the change handler only does each chip's real work.
       if (target.id === "popampChipPl") {
+        // PL only toggles the playlist stack. Do not move/swap the video.
         state.playlistPanelVisible = target.checked;
         updateUI();
         return;
       }
 
       if (target.id === "popampChipEq") {
+        // EQ only toggles the equalizer stack. Do not move/swap the video.
+        state.popampEqPanelVisible = target.checked;
         updateUI();
         return;
       }
@@ -892,11 +930,20 @@
     }
   }
 
-  function normalizeSkin(value) {
-    const skin = String(value || "").toLowerCase();
-    if (skin === "popamp") return "popamp";
-    if (skin === "cassette") return "cassette";
-    return "default";
+  function resolveManifestSkin(value) {
+    const skin = String(value || "").trim().toLowerCase();
+    if (SUPPORTED_SKINS.has(skin)) return skin;
+
+    // Production profile configs may contain the profile/page skin here
+    // (for example "minimal"). That is not a mixtape display skin, so do not
+    // let it downgrade popamp/cassette into the generic default renderer.
+    return normalizeSkin(DEFAULT_MANIFEST?.skin, "cassette");
+  }
+
+  function normalizeSkin(value, fallback = "cassette") {
+    const skin = String(value || "").trim().toLowerCase();
+    if (SUPPORTED_SKINS.has(skin)) return skin;
+    return SUPPORTED_SKINS.has(fallback) ? fallback : "cassette";
   }
 
   function applySkin() {
@@ -1103,7 +1150,7 @@
     if (volumeRange instanceof HTMLInputElement) volumeRange.value = String(state.popampVolume);
     if (balanceRange instanceof HTMLInputElement) balanceRange.value = String(state.popampBalance);
     if (playlistToggle instanceof HTMLInputElement) playlistToggle.checked = state.playlistPanelVisible;
-    if (equalizerToggle instanceof HTMLInputElement) equalizerToggle.checked = state.view !== "source";
+    if (equalizerToggle instanceof HTMLInputElement) equalizerToggle.checked = state.popampEqPanelVisible;
     if (shuffleToggle instanceof HTMLInputElement) shuffleToggle.checked = state.popampShuffleEnabled;
     if (repeatToggle instanceof HTMLInputElement) repeatToggle.checked = state.popampRepeatEnabled;
 
@@ -1118,9 +1165,14 @@
     restoreStandaloneViewToggle();
     bindPopampTransportControls();
 
-    // Start on the matrix visualizer; the video swaps in when the user plays.
+    // Start on the matrix visualizer; the video swaps into this original
+    // top display on play, and can also be moved into the playlist panel.
     state.popampVizMode = "matrix";
+    state.popampVideoLocation = "top";
     els.app.dataset.popampViz = "matrix";
+    els.app.dataset.popampPlaylistVideo = "false";
+    els.app.dataset.popampPlaylistGridHidden = state.popampPlaylistGridHidden ? "true" : "false";
+    els.app.dataset.popampEqVisible = state.popampEqPanelVisible ? "true" : "false";
   }
 
   function bindPopampTransportControls() {
@@ -1186,6 +1238,9 @@
     els.playButton = document.getElementById("playButton");
     els.prevButton = document.getElementById("prevButton");
     els.nextButton = document.getElementById("nextButton");
+    els.viewToggle = document.getElementById("viewToggle");
+    els.viewToggleIcon = document.getElementById("viewToggleIcon");
+    els.viewToggleLabel = document.getElementById("viewToggleLabel");
   }
 
   function restoreDefaultTrackCard() {
@@ -1195,11 +1250,65 @@
   }
 
   function mountPopampSourceFrame() {
+    ensurePopampFloatingVideoFrame();
+    syncPopampVideoFrameRect();
+  }
+
+  function mountPopampPlaylistVideoFrame() {
+    ensurePopampFloatingVideoFrame();
+    syncPopampVideoFrameRect();
+  }
+
+  function ensurePopampFloatingVideoFrame() {
+    if (state.manifest.skin !== "popamp") return null;
     const frame = document.querySelector(".youtube-frame");
-    const vizPanel = document.querySelector(".popamp-viz-panel");
-    if (frame && vizPanel && frame.parentElement !== vizPanel) {
-      vizPanel.appendChild(frame);
+    const panel = document.querySelector(".player-panel");
+    if (!frame || !panel) return null;
+
+    frame.classList.add("popamp-floating-video");
+    if (frame.parentElement !== panel) {
+      panel.appendChild(frame);
     }
+    return frame;
+  }
+
+  function syncPopampVideoFrameRect() {
+    if (state.manifest.skin !== "popamp") return;
+    const frame = ensurePopampFloatingVideoFrame();
+    const panel = document.querySelector(".player-panel");
+    const target = state.popampVideoLocation === "playlist"
+      ? document.getElementById("popampPlaylistVideoMount")
+      : document.querySelector(".popamp-viz-panel");
+
+    if (!frame || !panel || !target) return;
+
+    const panelRect = panel.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const edgeInset = target.id === "popampPlaylistVideoMount" ? 0 : 2;
+    const left = (targetRect.left - panelRect.left) + edgeInset;
+    const top = (targetRect.top - panelRect.top) + edgeInset;
+    const width = Math.max(0, targetRect.width - (edgeInset * 2));
+    const height = Math.max(0, targetRect.height - (edgeInset * 2));
+
+    panel.style.setProperty("--popamp-video-x", `${left}px`);
+    panel.style.setProperty("--popamp-video-y", `${top}px`);
+    panel.style.setProperty("--popamp-video-w", `${width}px`);
+    panel.style.setProperty("--popamp-video-h", `${height}px`);
+
+    panel.classList.add("is-popamp-video-animating");
+    clearTimeout(state.popampVideoAnimationTimer);
+    state.popampVideoAnimationTimer = setTimeout(() => {
+      panel.classList.remove("is-popamp-video-animating");
+    }, 420);
+  }
+
+  function hidePopampPlaylistVideo() {
+    state.popampVideoLocation = "top";
+    els.app.dataset.popampPlaylistVideo = "false";
+    const mount = document.getElementById("popampPlaylistVideoMount");
+    if (mount) mount.setAttribute("aria-hidden", "true");
+    mountPopampSourceFrame();
+    syncViewToggleChrome();
   }
 
   function restoreSourceFrame() {
@@ -1574,9 +1683,12 @@
     els.progressInput.max   = String(Math.round(duration));
     els.progressInput.value = String(Math.min(duration, state.position));
     els.app.dataset.playlistVisible = state.playlistPanelVisible ? "true" : "false";
+    els.app.dataset.popampPlaylistGridHidden = state.popampPlaylistGridHidden ? "true" : "false";
+    els.app.dataset.popampEqVisible = state.popampEqPanelVisible ? "true" : "false";
     syncPopampTransportState();
     updatePopampDisplay();
     syncPopampToggles();
+    syncPopampVideoFrameRect();
   }
 
   function updateSourceExtras() {
@@ -1825,7 +1937,7 @@
       pl.checked = state.playlistPanelVisible;
     }
     if (eq instanceof HTMLInputElement) {
-      eq.checked = state.view !== "source";
+      eq.checked = state.popampEqPanelVisible;
     }
     if (shuffle instanceof HTMLInputElement) {
       shuffle.checked = state.popampShuffleEnabled;
@@ -1958,18 +2070,34 @@
   function setView(view) {
     state.view = view === "source" ? "source" : "playlist";
     els.app.dataset.view = state.view;
+    syncViewToggleChrome();
+  }
+
+  function syncViewToggleChrome() {
+    if (!els.viewToggle) return;
+
     if (state.manifest.skin === "popamp") {
-      if (els.viewToggleLabel) els.viewToggleLabel.textContent = state.view === "source" ? "Playlist" : "Video";
-      els.viewToggle?.setAttribute("aria-label", state.view === "source" ? "Show playlist" : "Show video");
+      const showingPlaylistVideo = state.popampVideoLocation === "playlist";
+      const label = showingPlaylistVideo ? "View Playlist" : "Music Video";
+      const iconClass = showingPlaylistVideo ? "fa-list" : "fa-video";
+
+      if (els.viewToggleLabel) els.viewToggleLabel.textContent = label;
+      if (els.viewToggleIcon) els.viewToggleIcon.className = `fa-solid ${iconClass}`;
+      els.viewToggle.dataset.popampTarget = showingPlaylistVideo ? "playlist" : "video";
+      els.viewToggle.setAttribute("aria-label", label);
       return;
     }
+
     if (state.manifest.skin === "default") {
-      if (els.viewToggleLabel) els.viewToggleLabel.textContent = state.view === "source" ? "Tracks" : "Video";
-      els.viewToggle?.setAttribute("aria-label", state.view === "source" ? "Show tracks" : "Show video");
+      if (els.viewToggleLabel) els.viewToggleLabel.textContent = state.view === "source" ? "Tracks" : "Music Video";
+      if (els.viewToggleIcon) els.viewToggleIcon.className = `fa-solid ${state.view === "source" ? "fa-list" : "fa-video"}`;
+      els.viewToggle.setAttribute("aria-label", state.view === "source" ? "Show tracks" : "Show video");
       return;
     }
+
     if (els.viewToggleLabel) els.viewToggleLabel.textContent = state.view === "source" ? "Tape Tracks" : "Music Video";
-    els.viewToggle?.setAttribute("aria-label", state.view === "source" ? "Show tracks" : "Show music video");
+    if (els.viewToggleIcon) els.viewToggleIcon.className = `fa-solid ${state.view === "source" ? "fa-list" : "fa-video"}`;
+    els.viewToggle.setAttribute("aria-label", state.view === "source" ? "Show tracks" : "Show music video");
   }
 
   function toggleView() {
@@ -1978,16 +2106,85 @@
     setView(nextView);
   }
 
-  /* ── Popamp viz panel: matrix ⇄ YouTube video in the top display ── */
+  /* ── Popamp video routing: original top display ⇄ playlist panel ── */
   function setPopampViz(mode) {
     if (state.manifest.skin !== "popamp") return;
     const next = mode === "video" ? "video" : "matrix";
-    const changed = state.popampVizMode !== next;
+    const changed = state.popampVizMode !== next || state.popampVideoLocation !== "top";
+
+    hidePopampPlaylistVideo();
     state.popampVizMode = next;
     els.app.dataset.popampViz = next;
+
+    syncPopampVideoFrameRect();
+    requestAnimationFrame(syncPopampVideoFrameRect);
+
     if (next === "video" && changed) {
       trackMixtapeOpenYouTube(currentTrack(), state.currentIndex);
     }
+
+    syncViewToggleChrome();
+  }
+
+  function showPopampPlaylistVideo(options = {}) {
+    if (state.manifest.skin !== "popamp") return;
+    const { trackOpen = false } = options;
+    const track = currentTrack();
+
+    state.playlistPanelVisible = true;
+    state.popampVideoLocation = "playlist";
+    state.popampVizMode = "matrix";
+    setView("playlist");
+    els.app.dataset.playlistVisible = "true";
+    els.app.dataset.popampViz = "matrix";
+    els.app.dataset.popampPlaylistVideo = "true";
+
+    const mount = document.getElementById("popampPlaylistVideoMount");
+    if (mount) mount.setAttribute("aria-hidden", "false");
+    mountPopampPlaylistVideoFrame();
+    requestAnimationFrame(syncPopampVideoFrameRect);
+    syncViewToggleChrome();
+
+    if (state.playerReady && state.player && track.youtubeVideoId) {
+      try {
+        if (state.loadedVideoId !== track.youtubeVideoId) {
+          state.loadedVideoId = track.youtubeVideoId;
+          state.position = 0;
+          state.duration = track.seconds || 1;
+          if (state.player.cueVideoById) {
+            state.player.cueVideoById({ videoId: track.youtubeVideoId, startSeconds: 0 });
+          }
+        }
+      } catch (err) {
+        console.warn("Popamp playlist video load failed", err);
+      }
+    }
+
+    if (trackOpen) trackMixtapeOpenYouTube(track, state.currentIndex);
+    syncPopampToggles();
+    updateUI();
+  }
+
+  function togglePopampPlaylistVideoGrid() {
+    if (state.manifest.skin !== "popamp") return;
+    if (state.popampVideoLocation !== "playlist") return;
+
+    state.popampPlaylistGridHidden = !state.popampPlaylistGridHidden;
+    els.app.dataset.popampPlaylistGridHidden = state.popampPlaylistGridHidden ? "true" : "false";
+  }
+
+  function togglePopampVideoLocation() {
+    if (state.popampVideoLocation === "playlist") {
+      setPopampViz("video");
+      return;
+    }
+
+    if (state.popampVizMode === "video") {
+      showPopampPlaylistVideo({ trackOpen: true });
+      return;
+    }
+
+    setPopampViz("video");
   }
 
   function togglePopampViz() {
