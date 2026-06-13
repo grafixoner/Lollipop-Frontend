@@ -136,6 +136,20 @@ button { cursor: pointer; }
   background: rgba(255,255,255,.05);
 }
 
+/* ── Boot state: show an empty deck until the mixtape resolves, then the
+      skin render fades in (and the cassette door snaps shut over it). ── */
+.player-panel > * {
+  transition: opacity .45s ease;
+}
+
+#app[data-booting="true"] .player-panel > * {
+  opacity: 0;
+}
+
+#app[data-booting="true"] .player-panel {
+  pointer-events: none;
+}
+
 /* ── Player panel ── */
 .player-panel {
   position: relative;

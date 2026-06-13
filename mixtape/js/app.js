@@ -76,29 +76,33 @@
   document.addEventListener("DOMContentLoaded", init);
 
   async function init() {
-    const loadResult = await maybeLoadManifest();
-    if (!loadResult.ok) return;
-    state.manifestReady = true;
-    document.title = state.manifest.sourceType === "claimed"
-      ? `${state.manifest.title} · Claimed Mixtape`
-      : state.manifest.title;
-    applySkin();
-    bindEvents();
-    await renderPlayerVisual();
-    renderTrackList();
-    setView("playlist");
-    updateUI();
-    syncEqualizerSliderColors();
-    if (window.YT?.Player) {
-      state.ytApiReady = true;
-      createYouTubePlayer();
-    }
-    startTimer();
+    try {
+      const loadResult = await maybeLoadManifest();
+      if (!loadResult.ok) return;
+      state.manifestReady = true;
+      document.title = state.manifest.sourceType === "claimed"
+        ? `${state.manifest.title} · Claimed Mixtape`
+        : state.manifest.title;
+      applySkin();
+      bindEvents();
+      await renderPlayerVisual();
+      renderTrackList();
+      setView("playlist");
+      updateUI();
+      syncEqualizerSliderColors();
+      if (window.YT?.Player) {
+        state.ytApiReady = true;
+        createYouTubePlayer();
+      }
+      startTimer();
 
-    if (loadResult.source === "config" || loadResult.source === "claimed-config") {
-      mixtapeAnalyticsEnabled = true;
-      trackMixtapeViewOnce();
-      if (shareEntryDetected()) trackMixtapeShareOpenOnce();
+      if (loadResult.source === "config" || loadResult.source === "claimed-config") {
+        mixtapeAnalyticsEnabled = true;
+        trackMixtapeViewOnce();
+        if (shareEntryDetected()) trackMixtapeShareOpenOnce();
+      }
+    } finally {
+      els.app.removeAttribute("data-booting");
     }
   }
 
