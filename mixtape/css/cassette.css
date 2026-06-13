@@ -330,7 +330,7 @@ body {
   --tape-border: #424242;
   --tape-light: #5a5a5a;
   --tape-dark: #1c1c1c;
-  --skin-accent: #6fcdde;
+  --skin-accent: var(--mixtape-label-color, #6fcdde);
   width: 100%;
   max-width: 520px;
   aspect-ratio: 458 / 287;

@@ -303,6 +303,44 @@
   image-rendering: crisp-edges;
 }
 
+/* â”€â”€ Viz panel video: the YouTube frame lives in the top display and
+      crossfades with the matrix instead of swapping out the playlist. â”€â”€ */
+[data-skin="popamp"] .popamp-matrix-canvas,
+[data-skin="popamp"] .popamp-viz-grid {
+  transition: opacity .3s ease;
+}
+
+[data-skin="popamp"] .popamp-display-shell .popamp-viz-panel .youtube-frame {
+  /* Override the global [data-view="playlist"] display:none (extra ancestor
+     class outranks it) so the iframe stays mounted and sized â€” audio keeps
+     playing and we toggle visibility via opacity only. */
+  display: block;
+  position: absolute;
+  inset: 2px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+  background: #020603;
+  transition: opacity .3s ease;
+}
+
+[data-skin="popamp"][data-popamp-viz="video"] .popamp-display-shell .popamp-viz-panel .youtube-frame {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* â”€â”€ Video sits under the unlit matrix dot grid â”€â”€
+      The video keeps its real colors; the matrix canvas stays lit over it
+      drawing only its dim dot grid (no spectrum/glyph pixels â€” see app.js).
+      Tune how present the dots feel with the opacity below. */
+[data-skin="popamp"][data-popamp-viz="video"] .popamp-matrix-canvas {
+  opacity: 1;
+  z-index: 5;
+}
+
 [data-skin="popamp"] .popamp-info-panel {
   display: grid;
   grid-template-rows: auto auto auto;
@@ -1101,6 +1139,9 @@
 }
 
 [data-skin="popamp"] .track-list {
+  /* Winamp-style fixed window: 10 rows (18px each), scroll for the rest */
+  max-height: 180px;
+  overflow-y: auto;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 8%),
     #000900;
@@ -1142,6 +1183,10 @@
 [data-skin="popamp"] .track-row.active .track-title,
 [data-skin="popamp"] .track-row.active .track-duration {
   color: #ffffff !important;
+}
+
+[data-skin="popamp"] .track-duration {
+  white-space: nowrap;
 }
 
 [data-skin="popamp"] .track-num,
@@ -1246,4 +1291,178 @@
     width: 40px;
     min-width: 40px;
   }
+}
+
+/* â”€â”€ Claimed copy badge: match the Popamp steel chrome â”€â”€
+   iOS overlays native close/refresh circles in the top corners, so the
+   badge stays centered in that band and the window drops below it. */
+[data-skin="popamp"][data-source-type="claimed"] .player-panel {
+  margin-top: 56px;
+}
+
+[data-skin="popamp"] .mixtape-source-badge {
+  /* Lift into the cleared band above the window, centered between the
+     native close/refresh circles (the panel drops 56px when claimed). */
+  top: -40px;
+  max-width: min(48vw, 230px);
+  white-space: nowrap;
+  gap: 7px;
+  padding: 6px 12px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(13, 16, 23, 0.9);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, #596179 0%, #434a5f 48%, #2a303e 49%, #262b39 100%);
+  color: #e8edf7;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(155, 164, 186, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 3px 8px rgba(0, 0, 0, 0.4);
+  backdrop-filter: none;
+      position: absolute;
+      top: 209px;
+      font-size: 6px;
+
+
+}
+
+[data-skin="popamp"] .mixtape-source-badge::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--popamp-led, #2fff18);
+  box-shadow: 0 0 7px rgba(47, 255, 24, 0.75);
+}
+
+/* ── Claimed copy badge: match the Popamp steel chrome ──
+   iOS overlays native close/refresh circles in the top corners, so the
+   badge stays centered in that band and the window drops below it. */
+[data-skin="popamp"][data-source-type="claimed"] .player-panel {
+  margin-top: 56px;
+}
+
+[data-skin="popamp"] .mixtape-source-badge {
+  /* Lift into the cleared band above the window, centered between the
+     native close/refresh circles (the panel drops 56px when claimed). */
+  top: -40px;
+  max-width: min(48vw, 230px);
+  white-space: nowrap;
+  gap: 7px;
+  padding: 6px 12px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(13, 16, 23, 0.9);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, #596179 0%, #434a5f 48%, #2a303e 49%, #262b39 100%);
+  color: #e8edf7;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(155, 164, 186, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 3px 8px rgba(0, 0, 0, 0.4);
+  backdrop-filter: none;
+      position: absolute;
+      top: 209px;
+      font-size: 6px;
+
+
+}
+
+[data-skin="popamp"] .mixtape-source-badge::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: var(--popamp-led, #2fff18);
+  box-shadow: 0 0 7px rgba(47, 255, 24, 0.75);
+}
+
+
+
+
+
+
+
+
+/* Video inside the Popamp LED display */
+[data-skin="popamp"] .popamp-display-shell .popamp-viz-panel .youtube-frame {
+  display: block;
+  position: absolute;
+  inset: 2px;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  z-index: 4;
+  opacity: 0;
+  pointer-events: none;
+  background: #020603;
+  overflow: hidden;
+  transition: opacity .3s ease;
+
+  /* Makes the video feel like it is behind smoked LED glass */
+  filter:
+    brightness(.58)
+    contrast(1.45)
+    saturate(.75)
+    sepia(.18)
+    hue-rotate(45deg);
+}
+
+[data-skin="popamp"][data-popamp-viz="video"] .popamp-display-shell .popamp-viz-panel .youtube-frame {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Put the existing green matrix dots above the video */
+[data-skin="popamp"][data-popamp-viz="video"] .popamp-matrix-canvas {
+  opacity: .9;
+  z-index: 6;
+  mix-blend-mode: screen;
+}
+
+/* Black LED cell separator grid */
+[data-skin="popamp"][data-popamp-viz="video"] .popamp-viz-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0px;
+  z-index: 7;
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(rgba(0, 0, 0, .78) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, .78) 1px, transparent 1px);
+
+  background-size: 4px 4px;
+  mix-blend-mode: multiply;
+  opacity:.5;
+}
+
+/* Subtle green phosphor glass / old display wash */
+[data-skin="popamp"] .popamp-viz-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0px;
+  z-index: 8;
+  pointer-events: none;
+
+  background:
+    radial-gradient(circle at center, rgba(61, 243, 24, .13), transparent 62%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,.035) 0,
+      rgba(255,255,255,.035) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+
+  opacity: .7;
+  mix-blend-mode: screen;
 }

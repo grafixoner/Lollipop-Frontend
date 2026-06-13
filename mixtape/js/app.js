@@ -4,6 +4,7 @@
   const MIXTAPE_ROUTE_PREFIX = "/mixtape/";
   const ASSET_BASE = ensureTrailingSlash(window.MIXTAPE_ASSET_BASE || "/mixtape/");
   const APP_STORE_URL = window.LOLLIPOP_APP_STORE_URL || "https://apps.apple.com/us/charts/iphone";
+  const DEFAULT_LABEL_COLOR = "#6fcdde";
   const TEMPLATE_PATHS = {
     popamp: assetPath("skins/popamp.html"),
     popampTrackCard: assetPath("skins/popamp-track-card.html"),
@@ -65,8 +66,17 @@
     popampBalance: 50,
     popampShuffleEnabled: false,
     popampRepeatEnabled: true,
-    shuffleRemaining: []
+    shuffleRemaining: [],
+    popampVizMode: "matrix",
+    labelColor: resolveLabelColorFromUrl()
   };
+
+  /* Popamp "fake" chrome that toggles the viz between the YouTube video and the
+     spectrum matrix when tapped (discrete buttons only — NOT the preamp, which
+     fades the video, and NOT the EQ band sliders, which force the spectrum). */
+  const POPAMP_FAKE_SWAP_OUT =
+    ".popamp-chip-button, .popamp-wide-button, .popamp-toggle, .popamp-presets," +
+    " .popamp-footer-buttons, .popamp-footer-listopts";
 
   window.onYouTubeIframeAPIReady = () => {
     state.ytApiReady = true;
@@ -715,6 +725,13 @@
       toggleView();
     }, true);
 
+    document.addEventListener("click", (event) => {
+      if (state.manifest.skin !== "popamp") return;
+      const el = event.target instanceof Element ? event.target : null;
+      if (!el || el.closest("#popampPreampRange")) return;
+      if (el.closest(POPAMP_FAKE_SWAP_OUT)) togglePopampViz();
+    });
+
     document.addEventListener("input", (event) => {
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) return;
@@ -723,6 +740,9 @@
         if (target.id === "popampPreampRange") {
           state.popampPreamp = Math.max(0, Math.min(100, Number(target.value) || 0));
           applyEffectivePlayerVolume();
+        } else {
+          // Fake EQ band slider: swap the viz video back out to the matrix.
+          setPopampViz("matrix");
         }
         syncEqualizerSliderColor(target);
         return;
@@ -790,6 +810,10 @@
 
     els.viewToggle?.addEventListener("click", () => {
       playButtonClickSound("light");
+      if (state.manifest.skin === "popamp") {
+        setPopampViz(state.popampVizMode === "video" ? "matrix" : "video");
+        return;
+      }
       toggleView();
     });
 
@@ -797,6 +821,8 @@
       const target = event.target;
       if (!(target instanceof HTMLInputElement)) return;
 
+      // Viz toggling for these chips is handled by the delegated click
+      // listener above; the change handler only does each chip's real work.
       if (target.id === "popampChipPl") {
         state.playlistPanelVisible = target.checked;
         updateUI();
@@ -804,11 +830,6 @@
       }
 
       if (target.id === "popampChipEq") {
-        state.playlistPanelVisible = true;
-        if (!target.checked && state.view !== "source") {
-          trackMixtapeOpenYouTube(currentTrack(), state.currentIndex);
-        }
-        setView(target.checked ? "playlist" : "source");
         updateUI();
         return;
       }
@@ -881,6 +902,7 @@
   function applySkin() {
     els.app.dataset.skin = state.manifest.skin;
     els.app.dataset.sourceType = state.manifest.sourceType || "live";
+    els.app.style.setProperty("--mixtape-label-color", state.labelColor || DEFAULT_LABEL_COLOR);
     applyDefaultTheme();
     updateSourceExtras();
   }
@@ -892,6 +914,19 @@
     els.app.style.setProperty("--default-player-text", textColor);
     els.app.style.setProperty("--default-player-muted", colorWithAlpha(textColor, 0.58));
     els.app.style.setProperty("--default-player-soft", colorWithAlpha(textColor, 0.42));
+  }
+
+  function resolveLabelColorFromUrl() {
+    const fallback = DEFAULT_LABEL_COLOR;
+    let raw = "";
+    try {
+      raw = new URLSearchParams(window.location.search || "").get("label") || "";
+    } catch (_) {
+      return fallback;
+    }
+
+    const value = String(raw).trim().replace(/^#/, "");
+    return /^[0-9a-f]{6}$/i.test(value) ? `#${value}` : fallback;
   }
 
   function isHexColor(value) {
@@ -1082,6 +1117,10 @@
     mountPopampSourceFrame();
     restoreStandaloneViewToggle();
     bindPopampTransportControls();
+
+    // Start on the matrix visualizer; the video swaps in when the user plays.
+    state.popampVizMode = "matrix";
+    els.app.dataset.popampViz = "matrix";
   }
 
   function bindPopampTransportControls() {
@@ -1157,9 +1196,9 @@
 
   function mountPopampSourceFrame() {
     const frame = document.querySelector(".youtube-frame");
-    const jcard = document.querySelector(".track-card .jcard");
-    if (frame && jcard && frame.parentElement !== jcard) {
-      jcard.appendChild(frame);
+    const vizPanel = document.querySelector(".popamp-viz-panel");
+    if (frame && vizPanel && frame.parentElement !== vizPanel) {
+      vizPanel.appendChild(frame);
     }
   }
 
@@ -1356,7 +1395,11 @@
       state.playing = true;
       state.transportMode = "playing";
       setStatus("PLAYING");
-      if (userInitiated) trackMixtapePlayStart(track, state.currentIndex);
+      if (userInitiated) {
+        trackMixtapePlayStart(track, state.currentIndex);
+        // Swap the YouTube video into the popamp viz panel on a real play tap.
+        if (state.manifest.skin === "popamp") setPopampViz("video");
+      }
     } catch (err) {
       console.warn("Play failed", err);
       setStatus("TAP SOURCE");
@@ -1598,12 +1641,14 @@
         mode,
         position: Math.max(0, Number(state.position || 0)),
         playing: state.playing,
-        buffering: isBuffering
+        buffering: isBuffering,
+        // Over the video, draw only the dim dot grid — no lit pixels.
+        dotsOnly: state.popampVizMode === "video"
       });
     }
   }
 
-  function drawPopampMatrix(canvas, { mode, position, playing, buffering }) {
+  function drawPopampMatrix(canvas, { mode, position, playing, buffering, dotsOnly }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.imageSmoothingEnabled = false;
@@ -1627,6 +1672,9 @@
         drawMatrixDot(ctx, x, y, dim, "rgba(61,243,24,0.035)");
       }
     }
+
+    // Over the video we keep only the unlit dot grid for texture.
+    if (dotsOnly) return;
 
     drawGlyph(ctx, status === "STOP" ? MATRIX_GLYPHS.stop : MATRIX_GLYPHS.play, 1, 1, on, gridStep, 1);
     const timeWidth = measureTextWidth(timeText, 1);
@@ -1928,6 +1976,22 @@
     const nextView = state.view === "source" ? "playlist" : "source";
     if (nextView === "source") trackMixtapeOpenYouTube(currentTrack(), state.currentIndex);
     setView(nextView);
+  }
+
+  /* ── Popamp viz panel: matrix ⇄ YouTube video in the top display ── */
+  function setPopampViz(mode) {
+    if (state.manifest.skin !== "popamp") return;
+    const next = mode === "video" ? "video" : "matrix";
+    const changed = state.popampVizMode !== next;
+    state.popampVizMode = next;
+    els.app.dataset.popampViz = next;
+    if (next === "video" && changed) {
+      trackMixtapeOpenYouTube(currentTrack(), state.currentIndex);
+    }
+  }
+
+  function togglePopampViz() {
+    setPopampViz(state.popampVizMode === "video" ? "matrix" : "video");
   }
 
   /* ── Helpers ── */
