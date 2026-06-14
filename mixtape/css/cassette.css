@@ -30,6 +30,7 @@ body {
 }
 .player-panel {
   padding-top: 35px;
+  height: 100vh;
 
 }
 @media (max-height: 760px) {
