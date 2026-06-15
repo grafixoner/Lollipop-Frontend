@@ -64,10 +64,35 @@
           <span id="viewToggleLabel">YouTube Source</span>
         </button>
 
-
+        <footer class="mixtape-legal-footer">
+          <p>Tracks open through their original platforms and remain subject to those platforms' terms.</p>
+          <button id="reportMixtapeBtn" type="button" class="mixtape-report-link">Report Mixtape</button>
+        </footer>
 
       </section>
     </main>
+  </div>
+
+  <!-- Report modal -->
+  <div id="reportModal" class="mixtape-report-modal hidden" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+    <div class="mixtape-report-modal-inner">
+      <h2 id="reportModalTitle" class="mixtape-report-modal-title">Report Mixtape</h2>
+      <p class="mixtape-report-modal-body">Choose the reason that best describes the issue.</p>
+      <select id="reportReason" class="mixtape-report-select">
+        <option value="copyright">Copyright or music rights issue</option>
+        <option value="hateful">Hateful or abusive content</option>
+        <option value="explicit">Explicit content</option>
+        <option value="scam">Scam or misleading content</option>
+        <option value="broken_link">Broken or unsafe link</option>
+        <option value="other">Other</option>
+      </select>
+      <textarea id="reportDetails" class="mixtape-report-textarea" placeholder="Optional: add more details" maxlength="500" rows="3"></textarea>
+      <div class="mixtape-report-modal-actions">
+        <button id="reportCancelBtn" type="button" class="mixtape-report-btn secondary">Cancel</button>
+        <button id="reportSubmitBtn" type="button" class="mixtape-report-btn primary">Submit Report</button>
+      </div>
+      <p id="reportStatus" class="mixtape-report-status hidden"></p>
+    </div>
   </div>
 
   <script src="/mixtape/data/mixtape-data.js"></script>

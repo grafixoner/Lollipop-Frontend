@@ -1344,3 +1344,174 @@ input[type="range"]::-webkit-slider-thumb {
 [data-source-type="claimed"] .player-panel {
   border-color: rgba(104,211,145,.34);
 }
+
+/* ── Legal footer ─────────────────────────────────── */
+.mixtape-legal-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 20px 8px;
+  text-align: center;
+}
+
+.mixtape-legal-footer p {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: rgba(255,255,255,.38);
+  letter-spacing: .01em;
+}
+
+.mixtape-report-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 10px;
+  color: rgba(255,255,255,.3);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  letter-spacing: .01em;
+  transition: color .15s;
+}
+
+.mixtape-report-link:hover {
+  color: rgba(255,255,255,.6);
+}
+
+/* ── Report modal ─────────────────────────────────── */
+.mixtape-report-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  padding: 16px;
+}
+
+.mixtape-report-modal.hidden {
+  display: none;
+}
+
+.mixtape-report-modal-inner {
+  width: 100%;
+  max-width: 420px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px;
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mixtape-report-modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255,255,255,.9);
+  letter-spacing: -.01em;
+}
+
+.mixtape-report-modal-body {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255,255,255,.5);
+  line-height: 1.4;
+}
+
+.mixtape-report-select {
+  width: 100%;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: rgba(255,255,255,.85);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.mixtape-report-select:focus {
+  outline: none;
+  border-color: rgba(255,255,255,.3);
+}
+
+.mixtape-report-textarea {
+  width: 100%;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: rgba(255,255,255,.8);
+  resize: none;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.mixtape-report-textarea::placeholder {
+  color: rgba(255,255,255,.28);
+}
+
+.mixtape-report-textarea:focus {
+  outline: none;
+  border-color: rgba(255,255,255,.28);
+}
+
+.mixtape-report-modal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.mixtape-report-btn {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+
+.mixtape-report-btn:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+.mixtape-report-btn.secondary {
+  background: rgba(255,255,255,.1);
+  color: rgba(255,255,255,.75);
+}
+
+.mixtape-report-btn.secondary:hover:not(:disabled) {
+  background: rgba(255,255,255,.16);
+}
+
+.mixtape-report-btn.primary {
+  background: rgba(239,68,68,.8);
+  color: #fff;
+}
+
+.mixtape-report-btn.primary:hover:not(:disabled) {
+  background: rgba(239,68,68,.95);
+}
+
+.mixtape-report-status {
+  margin: 0;
+  font-size: 12px;
+  text-align: center;
+  color: rgba(255,255,255,.55);
+  line-height: 1.4;
+}
+
+.mixtape-report-status.hidden {
+  display: none;
+}

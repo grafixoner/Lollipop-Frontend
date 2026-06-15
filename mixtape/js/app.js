@@ -150,7 +150,7 @@
       const payload = await response.json();
 
       if (source.kind === "config") {
-        const manifest = manifestFromConfig(payload, source);
+        const manifest = manifestFromConfig(payload, source, source.mixtapeUuid);
         if (!manifest) {
           console.debug(source.mode === "claimed"
             ? "[mixtape] claimed claim_id not found"
@@ -189,11 +189,15 @@
     const route = parseMixtapeRoute(window.location.pathname);
     if (route.mode === "demo") return null;
 
+    const params = new URLSearchParams(window.location.search);
+    const mixtapeUuid = params.get("mid") || "";
+
     return {
       kind: "config",
       mode: route.mode,
       slug: route.slug,
       claimId: route.claimId,
+      mixtapeUuid,
       url: new URL(`/configs/${route.slug}.json`, window.location.origin).toString()
     };
   }
@@ -231,7 +235,7 @@
       .replace(/[^a-z0-9_-]/gi, "");
   }
 
-  function manifestFromConfig(config, source) {
+  function manifestFromConfig(config, source, mixtapeUuid) {
     if (typeof source === "string") {
       source = { mode: "live", slug: source, claimId: "" };
     }
@@ -240,12 +244,25 @@
       return manifestFromClaimedConfig(config, source.slug, source.claimId);
     }
 
-    return manifestFromLiveConfig(config, source?.slug || "");
+    return manifestFromLiveConfig(config, source?.slug || "", mixtapeUuid);
   }
 
-  function manifestFromLiveConfig(config, slug) {
+  function manifestFromLiveConfig(config, slug, mixtapeUuid) {
     const sections = Array.isArray(config?.section) ? config.section : [];
-    const mixtapeSection = sections.find(section => section?.id === "section_mixtape");
+    const allMixtape = sections.filter(s => s?.id === "section_mixtape" && !s.hidden);
+    if (!allMixtape.length) return null;
+
+    let mixtapeSection;
+    if (mixtapeUuid) {
+      mixtapeSection = allMixtape.find(s => s.uuid === mixtapeUuid);
+    }
+    if (!mixtapeSection) {
+      // fall back to first section with tap experience enabled
+      mixtapeSection = allMixtape.find(s => {
+        const fields = Array.isArray(s.fields) ? s.fields : [];
+        return fields[4]?.value === true;
+      }) || allMixtape[0];
+    }
     if (!mixtapeSection) return null;
 
     const fields = Array.isArray(mixtapeSection.fields) ? mixtapeSection.fields : [];
@@ -884,6 +901,55 @@
         updateUI();
       }
     });
+
+    const reportBtn    = document.getElementById("reportMixtapeBtn");
+    const reportModal  = document.getElementById("reportModal");
+    const reportCancel = document.getElementById("reportCancelBtn");
+    const reportSubmit = document.getElementById("reportSubmitBtn");
+    const reportReason = document.getElementById("reportReason");
+    const reportDetails = document.getElementById("reportDetails");
+    const reportStatus = document.getElementById("reportStatus");
+
+    if (reportBtn && reportModal) {
+      reportBtn.addEventListener("click", () => {
+        reportModal.classList.remove("hidden");
+        if (reportStatus) { reportStatus.textContent = ""; reportStatus.classList.add("hidden"); }
+        if (reportDetails) reportDetails.value = "";
+      });
+    }
+
+    if (reportCancel && reportModal) {
+      reportCancel.addEventListener("click", () => reportModal.classList.add("hidden"));
+    }
+
+    if (reportSubmit && reportModal) {
+      reportSubmit.addEventListener("click", async () => {
+        const slug = state.manifest?.sourceSlug || state.manifest?.ownerSlug || "";
+        const reason = reportReason?.value || "other";
+        const details = reportDetails?.value?.trim() || "";
+
+        reportSubmit.disabled = true;
+        if (reportStatus) { reportStatus.textContent = "Sending…"; reportStatus.classList.remove("hidden"); }
+
+        try {
+          const res = await fetch("/lollipop/mixtape/report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ slug, reason, details })
+          });
+          if (res.ok) {
+            if (reportStatus) { reportStatus.textContent = "Report submitted. Thank you."; reportStatus.classList.remove("hidden"); }
+            setTimeout(() => reportModal.classList.add("hidden"), 2000);
+          } else {
+            if (reportStatus) { reportStatus.textContent = "Something went wrong. Please try again."; reportStatus.classList.remove("hidden"); }
+          }
+        } catch (_) {
+          if (reportStatus) { reportStatus.textContent = "Could not send report. Check your connection."; reportStatus.classList.remove("hidden"); }
+        } finally {
+          reportSubmit.disabled = false;
+        }
+      });
+    }
   }
 
   function bindPrimaryControls() {
