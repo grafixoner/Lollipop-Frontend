@@ -1004,7 +1004,7 @@ var lollipop = {
     });
 
     if (tracks.length === 0) return '';
-
+    if (tapEnabled) return '';
     // Expose for external integrations
     window.MIXTAPE_DEMO = {
       id: lollipop.currentToken, title: title, skin: skin,
