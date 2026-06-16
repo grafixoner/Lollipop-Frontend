@@ -297,11 +297,31 @@ var lollipop = {
   // Map a font key to a CSS font-family stack.
   fontFamily: function(key){
     var map = {
-      indie:        "'Indie Flower', cursive",
-      lato:         "'Lato', sans-serif",
-      lobster:      "'Lobster', cursive",
-      specialelite: "'Special Elite', cursive",
-      fredericka:   "'Fredericka the Great', cursive"
+      indie:          "'Indie Flower', cursive",
+      lato:           "'Lato', sans-serif",
+      lobster:        "'Lobster', cursive",
+      specialelite:   "'Special Elite', cursive",
+      fredericka:     "'Fredericka the Great', cursive",
+      poppins:        "'Poppins', sans-serif",
+      raleway:        "'Raleway', sans-serif",
+      opensans:       "'Open Sans', sans-serif",
+      montserrat:     "'Montserrat', sans-serif",
+      oswald:         "'Oswald', sans-serif",
+      nunito:         "'Nunito', sans-serif",
+      playfair:       "'Playfair Display', serif",
+      merriweather:   "'Merriweather', serif",
+      lora:           "'Lora', serif",
+      pacifico:       "'Pacifico', cursive",
+      dancing:        "'Dancing Script', cursive",
+      sacramento:     "'Sacramento', cursive",
+      greatvibes:     "'Great Vibes', cursive",
+      caveat:         "'Caveat', cursive",
+      kalam:          "'Kalam', cursive",
+      permanentmarker:"'Permanent Marker', cursive",
+      satisfy:        "'Satisfy', cursive",
+      anton:          "'Anton', sans-serif",
+      bebas:          "'Bebas Neue', cursive",
+      righteous:      "'Righteous', cursive"
     };
     return map[key] || '';
   },
