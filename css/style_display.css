@@ -911,8 +911,9 @@ cursor: pointer;
 }
 .ict-brands {
   display:inline-block;
-  width:2.4rem;
-  height:2.4rem;
+  width:2.25rem;
+  height:2.25rem;
+  max-height:36px;
   background-size: cover;
 }
 .accordion_item .ict-brands {
