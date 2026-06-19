@@ -190,7 +190,7 @@
     if (route.mode === "demo") return null;
 
     const params = new URLSearchParams(window.location.search);
-    const mixtapeUuid = params.get("mid") || "";
+    const mixtapeUuid = params.get("mixtape_uuid") || params.get("mid") || "";
 
     return {
       kind: "config",
@@ -255,9 +255,8 @@
     let mixtapeSection;
     if (mixtapeUuid) {
       mixtapeSection = allMixtape.find(s => s.uuid === mixtapeUuid);
-    }
-    if (!mixtapeSection) {
-      // fall back to first section with tap experience enabled
+      if (!mixtapeSection) return null;
+    } else {
       mixtapeSection = allMixtape.find(s => {
         const fields = Array.isArray(s.fields) ? s.fields : [];
         return fields[4]?.value === true;

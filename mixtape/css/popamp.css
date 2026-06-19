@@ -1297,10 +1297,10 @@
   }
 }
 
-/* ── Claimed copy badge: match the Popamp steel chrome ──
-   iOS overlays native close/refresh circles in the top corners, so the
-   badge stays centered in that band and the window drops below it. */
-[data-skin="popamp"][data-source-type="claimed"] .player-panel {
+/* ── iOS player chrome clearance ───────────────────────────────────────────
+   iOS overlays native close/refresh circles in the top corners, so the Popamp
+   window drops below that band like the tape stack player does. */
+[data-skin="popamp"] .player-panel {
   margin-top: 56px;
 }
 
