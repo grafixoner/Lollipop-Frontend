@@ -134,7 +134,9 @@
     if (!source) return { ok: true, source: "demo" };
 
     try {
-      const response = await fetch(source.url, { credentials: "same-origin" });
+      // no-store: playlists can be edited at any time, so every load must hit
+      // the live config — never serve a cached /configs/<slug>.json.
+      const response = await fetch(source.url, { credentials: "same-origin", cache: "no-store" });
 
       if (!response.ok) {
         if (source.kind === "config") {
