@@ -5,6 +5,7 @@
   const ASSET_BASE = ensureTrailingSlash(window.MIXTAPE_ASSET_BASE || "/mixtape/");
   const APP_STORE_URL = window.LOLLIPOP_APP_STORE_URL || "https://apps.apple.com/us/charts/iphone";
   const DEFAULT_LABEL_COLOR = "#6fcdde";
+  const NEON_LABEL_PALETTE = ["39FF14", "FF1493", "00F0FF", "FFF200", "FF6E00", "BC13FE", "FF3131"];
   const SUPPORTED_SKINS = new Set(["default", "cassette", "popamp"]);
   const TEMPLATE_PATHS = {
     popamp: assetPath("skins/popamp.html"),
@@ -272,6 +273,7 @@
 
     return {
       id: slug || "mixtape",
+      uuid: String(mixtapeSection.uuid || "").trim(),
       title,
       skin: resolveManifestSkin(fields[5]?.value),
       mysteryMode: fields[6]?.value !== false,
@@ -317,6 +319,7 @@
     return {
       id: String(claim.claim_id || claim.claimId || claimId || "claimed-mixtape"),
       claimId: String(claim.claim_id || claim.claimId || claimId || ""),
+      uuid: String(mixtape.mixtape_uuid || claim.mixtape_uuid || "").trim(),
       title,
       skin: resolveManifestSkin(mixtape.skin || claim.skin),
       mysteryMode: mixtape.mysteryMode !== false,
@@ -1016,7 +1019,10 @@
   function applySkin() {
     els.app.dataset.skin = state.manifest.skin;
     els.app.dataset.sourceType = state.manifest.sourceType || "live";
-    els.app.style.setProperty("--mixtape-label-color", state.labelColor || DEFAULT_LABEL_COLOR);
+    const labelColor = state.labelColor
+      || resolveNeonHexFromUuid(state.manifest.uuid || state.manifest.sourceSlug || state.manifest.id)
+      || DEFAULT_LABEL_COLOR;
+    els.app.style.setProperty("--mixtape-label-color", labelColor);
     applyDefaultTheme();
     updateSourceExtras();
   }
@@ -1031,16 +1037,22 @@
   }
 
   function resolveLabelColorFromUrl() {
-    const fallback = DEFAULT_LABEL_COLOR;
     let raw = "";
     try {
       raw = new URLSearchParams(window.location.search || "").get("label") || "";
     } catch (_) {
-      return fallback;
+      return null;
     }
 
     const value = String(raw).trim().replace(/^#/, "");
-    return /^[0-9a-f]{6}$/i.test(value) ? `#${value}` : fallback;
+    return /^[0-9a-f]{6}$/i.test(value) ? `#${value}` : null;
+  }
+
+  function resolveNeonHexFromUuid(identifier) {
+    const value = String(identifier || "").trim() || "mixtape";
+    let total = 0;
+    for (const ch of value) total += ch.codePointAt(0);
+    return `#${NEON_LABEL_PALETTE[total % NEON_LABEL_PALETTE.length]}`;
   }
 
   function isHexColor(value) {
