@@ -1587,6 +1587,11 @@
         trackMixtapePlayStart(track, state.currentIndex);
         // Swap the YouTube video into the popamp viz panel on a real play tap.
         if (state.manifest.skin === "popamp") setPopampViz("video");
+        // Swap the tape's J-card for the YouTube video on a real play tap.
+        if (state.manifest.skin === "cassette" && state.view !== "source") {
+          setView("source");
+          trackMixtapeOpenYouTube(track, state.currentIndex);
+        }
       }
     } catch (err) {
       console.warn("Play failed", err);
@@ -1604,6 +1609,8 @@
     state.playing = false;
     state.buffering = false;
     state.transportMode = "paused";
+    // Pausing hands the tape back its J-card.
+    if (state.manifest.skin === "cassette") setView("playlist");
     updateUI();
   }
 
@@ -1680,6 +1687,9 @@
     updateUI();
     if (shouldPlay) playCurrent(userInitiated);
     else cueCurrent();
+    // Changing tracks by hand always lands back on the tape's J-card, even
+    // though playCurrent() above may have just swapped in the video.
+    if (userInitiated && state.manifest.skin === "cassette") setView("playlist");
   }
 
   function cueCurrent() {
