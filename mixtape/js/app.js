@@ -69,7 +69,7 @@
     popampPreamp: 70,
     popampBalance: 50,
     popampShuffleEnabled: false,
-    popampRepeatEnabled: true,
+    popampRepeatEnabled: false,
     shuffleRemaining: [],
     popampVizMode: "matrix",
     popampVideoLocation: "top",
@@ -1645,7 +1645,9 @@
   }
 
   function handleTrackEnded() {
-    if (state.popampRepeatEnabled) {
+    // The repeat toggle only exists in the popamp skin's chrome; other skins
+    // have no way to switch it off, so only popamp may honor it.
+    if (state.manifest.skin === "popamp" && state.popampRepeatEnabled) {
       replayCurrentTrack();
       return;
     }
