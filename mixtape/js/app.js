@@ -586,7 +586,13 @@
       title: manifest.title,
       skin: manifest.skin,
       track_count: Array.isArray(manifest.tracks) ? manifest.tracks.length : 0,
-      route_kind: isClaimed ? "claimed" : "live"
+      route_kind: isClaimed ? "claimed" : "live",
+      // LP-031: lets the backend attribute per-mixtape stats precisely when a
+      // creator has more than one mixtape on the same profile - activity
+      // events previously only carried source_slug, which lumps every
+      // mixtape on a profile together. Already present on state.manifest for
+      // both live and claimed routes (see manifestFromLiveConfig).
+      uuid: manifest.uuid
     });
   }
 
