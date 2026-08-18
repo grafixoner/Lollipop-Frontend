@@ -4,6 +4,10 @@
   const MIXTAPE_ROUTE_PREFIX = "/mixtape/";
   const ASSET_BASE = ensureTrailingSlash(window.MIXTAPE_ASSET_BASE || "/mixtape/");
   const APP_STORE_URL = window.LOLLIPOP_APP_STORE_URL || "https://apps.apple.com/us/charts/iphone";
+  const ANDROID_STORE_URL = window.LOLLIPOP_ANDROID_STORE_URL || "https://play.google.com/store/apps";
+  const MIXTAPE_CLAIM_BAR_KEY = "lollipop_mixtape_claim_bar";
+  const MIXTAPE_CLAIM_BAR_MAX_AGE_MS = 30 * 1000;
+  const MIXTAPE_CLAIM_BAR_REAPPEAR_MS = 120 * 1000;
   const DEFAULT_LABEL_COLOR = "#6fcdde";
   const NEON_LABEL_PALETTE = ["39FF14", "FF1493", "00F0FF", "FFF200", "FF6E00", "BC13FE", "FF3131"];
   const SUPPORTED_SKINS = new Set(["default", "cassette", "popamp"]);
@@ -124,6 +128,7 @@
         mixtapeAnalyticsEnabled = true;
         trackMixtapeViewOnce();
         if (shareEntryDetected()) trackMixtapeShareOpenOnce();
+        initMixtapeClaimBar();
       }
     } finally {
       els.app.removeAttribute("data-booting");
@@ -740,6 +745,182 @@
         target: "mixtape_card_cta"
       }
     });
+  }
+
+  /* ── Claim bar (tap handoff from /validate/tape) ──
+     Mirrors the App Clip's inline player + "CLAIM THIS MIXTAPE" gradient
+     bar (see AppClipClaimView.playerClaimBar): the validate page redirects
+     straight here instead of showing its own "found a mixtape" drawer, and
+     stashes the deep link + copy in sessionStorage for us to pick up. */
+  let mixtapeClaimBar = null;
+  let mixtapeClaimBarState = null;
+  let mixtapeClaimBarDismissed = false;
+  let mixtapeClaimBarReappearTimer = null;
+
+  function initMixtapeClaimBar() {
+    let payload = null;
+    try {
+      const raw = sessionStorage.getItem(MIXTAPE_CLAIM_BAR_KEY);
+      if (raw) {
+        sessionStorage.removeItem(MIXTAPE_CLAIM_BAR_KEY);
+        payload = JSON.parse(raw);
+      }
+    } catch (err) {
+      payload = null;
+    }
+
+    if (!payload || !payload.deepLink) return;
+    if (Date.now() - Number(payload.savedAt || 0) > MIXTAPE_CLAIM_BAR_MAX_AGE_MS) return;
+
+    mixtapeClaimBarState = payload;
+    showMixtapeClaimBar();
+  }
+
+  function showMixtapeClaimBar() {
+    if (!mixtapeClaimBarState || mixtapeClaimBarDismissed) return;
+    if (!mixtapeClaimBar) mixtapeClaimBar = buildMixtapeClaimBar();
+    if (!mixtapeClaimBar.isConnected) els.app.appendChild(mixtapeClaimBar);
+    requestAnimationFrame(() => mixtapeClaimBar.classList.add("visible"));
+  }
+
+  function buildMixtapeClaimBar() {
+    const bar = document.createElement("div");
+    bar.className = "mixtape-claim-bar";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mixtape-claim-bar-button";
+    button.setAttribute(
+      "aria-label",
+      String(mixtapeClaimBarState.title || "Claim this mixtape").replace(/MIXTAPE/gi, "mixtape")
+    );
+    button.addEventListener("click", openMixtapeClaimBar);
+
+    const icon = document.createElement("span");
+    icon.className = "mixtape-claim-bar-icon";
+    icon.innerHTML = '<i class="fa-solid fa-compact-disc" aria-hidden="true"></i>';
+
+    const copy = document.createElement("span");
+    copy.className = "mixtape-claim-bar-copy";
+
+    const title = document.createElement("span");
+    title.className = "mixtape-claim-bar-title";
+    title.textContent = mixtapeClaimBarState.title || "Claim This Mixtape";
+
+    const message = document.createElement("span");
+    message.className = "mixtape-claim-bar-message";
+    message.textContent = mixtapeClaimBarState.message || "Save this drop to your Lollipop collection.";
+
+    copy.append(title, message);
+
+    const chevron = document.createElement("i");
+    chevron.className = "fa-solid fa-chevron-right mixtape-claim-bar-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+
+    button.append(icon, copy, chevron);
+
+    const dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.className = "mixtape-claim-bar-dismiss";
+    dismiss.setAttribute("aria-label", "Dismiss");
+    dismiss.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+    dismiss.addEventListener("click", event => {
+      event.stopPropagation();
+      dismissMixtapeClaimBar();
+    });
+
+    bar.append(button, dismiss);
+    return bar;
+  }
+
+  function dismissMixtapeClaimBar() {
+    mixtapeClaimBarDismissed = true;
+    mixtapeClaimBar?.classList.remove("visible");
+
+    clearTimeout(mixtapeClaimBarReappearTimer);
+    mixtapeClaimBarReappearTimer = setTimeout(() => {
+      mixtapeClaimBarDismissed = false;
+      showMixtapeClaimBar();
+    }, MIXTAPE_CLAIM_BAR_REAPPEAR_MS);
+  }
+
+  // Same "try the deep link, fall back to app-store links if the tab never
+  // hides" pattern as the web claim drawer's openDeepLinkWithInstallFallback
+  // in lollipop_authenticate.js — kept local here since the player is a
+  // standalone page with no shared JS with that script.
+  function openMixtapeClaimBar() {
+    if (!mixtapeClaimBarState?.deepLink) return;
+
+    let didHide = false;
+    const onVisibilityChange = () => {
+      if (document.hidden) didHide = true;
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    const link = document.createElement("a");
+    link.href = mixtapeClaimBarState.deepLink;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      if (!didHide) showMixtapeInstallOverlay();
+    }, 1400);
+  }
+
+  function showMixtapeInstallOverlay() {
+    let overlay = document.getElementById("mixtapeInstallOverlay");
+    if (overlay) {
+      overlay.classList.remove("hidden");
+      return;
+    }
+
+    overlay = document.createElement("div");
+    overlay.id = "mixtapeInstallOverlay";
+    overlay.className = "mixtape-install-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+
+    const card = document.createElement("div");
+    card.className = "mixtape-install-card";
+
+    const title = document.createElement("h2");
+    title.className = "mixtape-install-title";
+    title.textContent = "Get the Lollipop app";
+
+    const body = document.createElement("p");
+    body.className = "mixtape-install-body";
+    body.textContent = "Claiming a mixtape happens inside the Lollipop app. Open the app, or install it and tap again.";
+
+    const actions = document.createElement("div");
+    actions.className = "mixtape-install-actions";
+
+    const iosLink = document.createElement("a");
+    iosLink.className = "mixtape-install-button primary";
+    iosLink.href = APP_STORE_URL;
+    iosLink.target = "_blank";
+    iosLink.rel = "noopener";
+    iosLink.textContent = "Download for iOS";
+
+    const androidLink = document.createElement("a");
+    androidLink.className = "mixtape-install-button secondary";
+    androidLink.href = ANDROID_STORE_URL;
+    androidLink.target = "_blank";
+    androidLink.rel = "noopener";
+    androidLink.textContent = "Download for Android";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "mixtape-install-close";
+    closeBtn.textContent = "Not now";
+    closeBtn.addEventListener("click", () => overlay.classList.add("hidden"));
+
+    actions.append(iosLink, androidLink, closeBtn);
+    card.append(title, body, actions);
+    overlay.appendChild(card);
+    els.app.appendChild(overlay);
   }
 
   /* ── Events ── */

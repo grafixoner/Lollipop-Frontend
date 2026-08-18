@@ -1345,6 +1345,182 @@ input[type="range"]::-webkit-slider-thumb {
   border-color: rgba(104,211,145,.34);
 }
 
+/* ── Claim bar (tap handoff from /validate/tape) ── */
+.mixtape-claim-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 20px calc(env(safe-area-inset-bottom, 0px) + 20px);
+  background: linear-gradient(to bottom, transparent, rgba(0,0,0,.55) 45%, rgba(0,0,0,.82));
+  transform: translateY(100%);
+  opacity: 0;
+  transition: transform .38s cubic-bezier(.2,.8,.2,1), opacity .38s ease;
+  pointer-events: none;
+}
+
+.mixtape-claim-bar.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mixtape-claim-bar-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 13px 14px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 22px;
+  background: linear-gradient(135deg, #ff1485, #7020ff, #00c4e1);
+  box-shadow: 0 18px 30px rgba(255,20,133,.24), inset 0 1px 0 rgba(255,255,255,.18);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mixtape-claim-bar-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: 12px;
+  background: rgba(255,255,255,.18);
+  font-size: 18px;
+  color: #fff;
+}
+
+.mixtape-claim-bar-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mixtape-claim-bar-title {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mixtape-claim-bar-message {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: rgba(255,255,255,.76);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.mixtape-claim-bar-chevron {
+  flex: none;
+  font-size: 16px;
+  color: rgba(255,255,255,.76);
+}
+
+.mixtape-claim-bar-dismiss {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0,0,0,.4);
+  color: rgba(255,255,255,.7);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* ── Install fallback overlay (deep link didn't open the app) ── */
+.mixtape-install-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  padding: 16px;
+}
+
+.mixtape-install-overlay.hidden {
+  display: none;
+}
+
+.mixtape-install-card {
+  width: 100%;
+  max-width: 420px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px;
+  padding: 24px 20px calc(env(safe-area-inset-bottom, 0px) + 20px);
+}
+
+.mixtape-install-title {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.mixtape-install-body {
+  margin: 0 0 18px;
+  color: rgba(255,255,255,.7);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mixtape-install-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.mixtape-install-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border-radius: 14px;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.mixtape-install-button.primary {
+  color: #17120d;
+  background: linear-gradient(180deg, #ffe48f, #d8a63b);
+}
+
+.mixtape-install-button.secondary {
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.06);
+}
+
+.mixtape-install-close {
+  padding: 8px;
+  border: none;
+  background: none;
+  color: rgba(255,255,255,.5);
+  font-size: 13px;
+  cursor: pointer;
+}
+
 /* ── Legal footer ─────────────────────────────────── */
 .mixtape-legal-footer {
   display: flex;
