@@ -873,8 +873,27 @@
   // hides" pattern as the web claim drawer's openDeepLinkWithInstallFallback
   // in lollipop_authenticate.js — kept local here since the player is a
   // standalone page with no shared JS with that script.
+  // In-app browsers (X, Instagram, TikTok, etc.) reliably swallow custom
+  // URL scheme links like lollipop:// with no visible failure — the tab
+  // never backgrounds, so there's no point even trying before falling back
+  // to the install overlay. Real Mobile Safari carries a "Version/" token;
+  // Chrome/Firefox/Edge for iOS carry their own distinct tokens. A WKWebView
+  // hosted inside another app typically reports plain "Safari/" with none
+  // of those.
+  function isLikelyInAppBrowser() {
+    const ua = navigator.userAgent || "";
+    if (!/iP(hone|od|ad)/.test(ua)) return false;
+    if (/CriOS|FxiOS|EdgiOS/.test(ua)) return false;
+    return !/Version\//.test(ua);
+  }
+
   function openMixtapeClaimBar() {
     if (!mixtapeClaimBarState?.deepLink) return;
+
+    if (isLikelyInAppBrowser()) {
+      showMixtapeInstallOverlay();
+      return;
+    }
 
     let didHide = false;
     const onVisibilityChange = () => {
@@ -965,17 +984,30 @@
         '<span class="mixtape-install-store-button-name">App Store</span>' +
       '</span>';
 
-    // No "Open Lollipop App" retry here — this overlay only ever appears
-    // after openMixtapeClaimBar's own deep-link attempt already failed to
-    // background the tab, so re-offering the same lollipop:// link inline
-    // would just fail the same way again.
+    // In a likely in-app browser, the deep link is known to silently fail
+    // (openMixtapeClaimBar skips straight here without even trying it), so
+    // offering an "Open Lollipop App" retry would just fail the same way
+    // again. Only offer it in a real browser, where the first attempt may
+    // have missed for a more transient reason (app not installed yet, slow
+    // launch, a flaky visibilitychange read).
+    const openButton = !isLikelyInAppBrowser() ? document.createElement("button") : null;
+    if (openButton) {
+      openButton.type = "button";
+      openButton.className = "mixtape-install-button primary";
+      openButton.textContent = "Open Lollipop App";
+      openButton.addEventListener("click", () => {
+        hideMixtapeInstallOverlay();
+        openMixtapeClaimBar();
+      });
+    }
+
     const tapAgainButton = document.createElement("button");
     tapAgainButton.type = "button";
     tapAgainButton.className = "mixtape-install-button secondary";
     tapAgainButton.textContent = "I’ll tap again";
     tapAgainButton.addEventListener("click", hideMixtapeInstallOverlay);
 
-    actions.append(storeLink, tapAgainButton);
+    actions.append(storeLink, ...(openButton ? [openButton] : []), tapAgainButton);
     card.append(kickerRow, title, body, note, actions);
     overlay.append(backdrop, glow, card);
     els.app.appendChild(overlay);
