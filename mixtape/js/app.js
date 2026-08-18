@@ -746,33 +746,59 @@
     });
   }
 
-  /* ── Claim bar (tap handoff from /validate/tape) ──
+  /* ── Claim bar ──
      Mirrors the App Clip's inline player + "CLAIM THIS MIXTAPE" gradient
-     bar (see AppClipClaimView.playerClaimBar): the validate page redirects
-     straight here instead of showing its own "found a mixtape" drawer, and
-     stashes the deep link + copy in sessionStorage for us to pick up. */
+     bar (see AppClipClaimView.playerClaimBar). Shown for any live (not
+     already personally-claimed) mixtape, regardless of how the player was
+     reached — a real NFC tap redirect (richest case: /validate/tape stashes
+     a tap-token-scoped deep link in sessionStorage before redirecting here)
+     or a plain visit to /mixtape/<slug> (shared link, bookmark), which
+     falls back to a generic lollipop://mixtape/<slug> deep link. */
   let mixtapeClaimBar = null;
   let mixtapeClaimBarState = null;
   let mixtapeClaimBarDismissed = false;
   let mixtapeClaimBarReappearTimer = null;
 
   function initMixtapeClaimBar() {
-    let payload = null;
-    try {
-      const raw = sessionStorage.getItem(MIXTAPE_CLAIM_BAR_KEY);
-      if (raw) {
-        sessionStorage.removeItem(MIXTAPE_CLAIM_BAR_KEY);
-        payload = JSON.parse(raw);
-      }
-    } catch (err) {
-      payload = null;
-    }
+    let payload = readStashedMixtapeClaimBarPayload();
 
-    if (!payload || !payload.deepLink) return;
-    if (Date.now() - Number(payload.savedAt || 0) > MIXTAPE_CLAIM_BAR_MAX_AGE_MS) return;
+    if (!payload) {
+      if (state.manifest.sourceType === "claimed") return;
+
+      const slug = state.manifest.sourceSlug || "";
+      if (!slug) return;
+
+      const params = new URLSearchParams(window.location.search);
+      const uuid = params.get("mixtape_uuid") || params.get("mid") || "";
+      let deepLink = `lollipop://mixtape/${encodeURIComponent(slug)}`;
+      if (uuid) deepLink += `?mixtape_uuid=${encodeURIComponent(uuid)}`;
+
+      payload = {
+        deepLink,
+        universalLink: "",
+        title: "CLAIM THIS MIXTAPE",
+        message: "Save this drop to your Lollipop collection.",
+        savedAt: Date.now()
+      };
+    }
 
     mixtapeClaimBarState = payload;
     showMixtapeClaimBar();
+  }
+
+  function readStashedMixtapeClaimBarPayload() {
+    try {
+      const raw = sessionStorage.getItem(MIXTAPE_CLAIM_BAR_KEY);
+      if (!raw) return null;
+      sessionStorage.removeItem(MIXTAPE_CLAIM_BAR_KEY);
+
+      const payload = JSON.parse(raw);
+      if (!payload?.deepLink) return null;
+      if (Date.now() - Number(payload.savedAt || 0) > MIXTAPE_CLAIM_BAR_MAX_AGE_MS) return null;
+      return payload;
+    } catch (err) {
+      return null;
+    }
   }
 
   function showMixtapeClaimBar() {
