@@ -484,6 +484,15 @@
     const tracks = Array.isArray(manifest.tracks) ? manifest.tracks : [];
     return {
       id:          manifest.id || "mixtape",
+      // LP-031: without this, manifestFromLiveConfig/manifestFromClaimedConfig
+      // set uuid correctly but it never survives this reshape, since it's not
+      // one of the fields listed below — getMixtapeAnalyticsPayload() then
+      // reads an always-empty manifest.uuid, so mixtape_view/mixtape_play_start
+      // ship with no uuid and the per-mixtape stats query (which filters on
+      // mixtape.uuid) can never match them. Verified live: a real published
+      // mixtape's config carries a real uuid, but the outgoing analytics
+      // payload had none until this line existed.
+      uuid:        manifest.uuid || "",
       title:       manifest.title || "Untitled MixTape",
       skin:        normalizeSkin(manifest.skin),
       sideLabel:   manifest.sideLabel || "Side A",
