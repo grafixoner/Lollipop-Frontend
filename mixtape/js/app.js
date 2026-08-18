@@ -3,7 +3,7 @@
   const ENDPOINT = window.MIXTAPE_ENDPOINT || "";
   const MIXTAPE_ROUTE_PREFIX = "/mixtape/";
   const ASSET_BASE = ensureTrailingSlash(window.MIXTAPE_ASSET_BASE || "/mixtape/");
-  const APP_STORE_URL = window.LOLLIPOP_APP_STORE_URL || "https://apps.apple.com/us/charts/iphone";
+  const APP_STORE_URL = window.LOLLIPOP_APP_STORE_URL || "https://apps.apple.com/us/app/lollipop-tap/id6781783073";
   const MIXTAPE_CLAIM_BAR_KEY = "lollipop_mixtape_claim_bar";
   const MIXTAPE_CLAIM_BAR_MAX_AGE_MS = 30 * 1000;
   const MIXTAPE_CLAIM_BAR_REAPPEAR_MS = 120 * 1000;
@@ -895,21 +895,6 @@
     }, 1400);
   }
 
-  // General "are we probably trapped in some app's in-app browser"
-  // heuristic — not X-specific, since X's in-app-browser UA string isn't
-  // something we can verify or trust to stay stable. Real Mobile Safari
-  // carries a "Version/" token; Chrome/Firefox/Edge for iOS carry their own
-  // distinct tokens. A WKWebView hosted inside another app (X, Instagram,
-  // TikTok, etc.) typically reports plain "Safari/" with none of those,
-  // which is the actual condition the x-safari- escape hatch fixes. The
-  // trick is iOS-only, so this is too.
-  function isLikelyTrappedInAppBrowser() {
-    const ua = navigator.userAgent || "";
-    if (!/iP(hone|od|ad)/.test(ua)) return false;
-    if (/CriOS|FxiOS|EdgiOS/.test(ua)) return false;
-    return !/Version\//.test(ua);
-  }
-
   // Same "Finish in the app" glass overlay as frontend/validate.html's
   // #claim-app-install-overlay (lollipop.authenticate.showAppInstallHelp,
   // "mixtape" copy variant) — kept visually identical so the handoff reads
@@ -967,21 +952,6 @@
     const actions = document.createElement("div");
     actions.className = "mixtape-install-actions";
 
-    let safariHint = null;
-    if (isLikelyTrappedInAppBrowser()) {
-      const safariLink = document.createElement("a");
-      safariLink.className = "mixtape-install-button safari";
-      safariLink.href = "x-safari-" + window.location.href;
-      safariLink.innerHTML =
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.25" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11l4.5-2.5Z" fill="currentColor"/></svg>' +
-        "<span>Open in Safari</span>";
-      actions.appendChild(safariLink);
-
-      safariHint = document.createElement("p");
-      safariHint.className = "mixtape-install-safari-hint";
-      safariHint.textContent = "This browser blocks the App Store — open in Safari to continue.";
-    }
-
     const storeLink = document.createElement("a");
     storeLink.className = "mixtape-install-store-button";
     storeLink.href = APP_STORE_URL;
@@ -995,23 +965,18 @@
         '<span class="mixtape-install-store-button-name">App Store</span>' +
       '</span>';
 
-    const openButton = document.createElement("button");
-    openButton.type = "button";
-    openButton.className = "mixtape-install-button primary";
-    openButton.textContent = "Open Lollipop App";
-    openButton.addEventListener("click", () => {
-      hideMixtapeInstallOverlay();
-      openMixtapeClaimBar();
-    });
-
+    // No "Open Lollipop App" retry here — this overlay only ever appears
+    // after openMixtapeClaimBar's own deep-link attempt already failed to
+    // background the tab, so re-offering the same lollipop:// link inline
+    // would just fail the same way again.
     const tapAgainButton = document.createElement("button");
     tapAgainButton.type = "button";
     tapAgainButton.className = "mixtape-install-button secondary";
     tapAgainButton.textContent = "I’ll tap again";
     tapAgainButton.addEventListener("click", hideMixtapeInstallOverlay);
 
-    actions.append(storeLink, openButton, tapAgainButton);
-    card.append(kickerRow, title, body, note, ...(safariHint ? [safariHint] : []), actions);
+    actions.append(storeLink, tapAgainButton);
+    card.append(kickerRow, title, body, note, actions);
     overlay.append(backdrop, glow, card);
     els.app.appendChild(overlay);
   }
