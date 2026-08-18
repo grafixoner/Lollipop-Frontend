@@ -4,7 +4,6 @@
   const MIXTAPE_ROUTE_PREFIX = "/mixtape/";
   const ASSET_BASE = ensureTrailingSlash(window.MIXTAPE_ASSET_BASE || "/mixtape/");
   const APP_STORE_URL = window.LOLLIPOP_APP_STORE_URL || "https://apps.apple.com/us/charts/iphone";
-  const ANDROID_STORE_URL = window.LOLLIPOP_ANDROID_STORE_URL || "https://play.google.com/store/apps";
   const MIXTAPE_CLAIM_BAR_KEY = "lollipop_mixtape_claim_bar";
   const MIXTAPE_CLAIM_BAR_MAX_AGE_MS = 30 * 1000;
   const MIXTAPE_CLAIM_BAR_REAPPEAR_MS = 120 * 1000;
@@ -870,6 +869,10 @@
     }, 1400);
   }
 
+  // Same "Finish in the app" glass overlay as frontend/validate.html's
+  // #claim-app-install-overlay (lollipop.authenticate.showAppInstallHelp,
+  // "mixtape" copy variant) — kept visually identical so the handoff reads
+  // as one continuous flow whether it started on /validate/tape or here.
   function showMixtapeInstallOverlay() {
     let overlay = document.getElementById("mixtapeInstallOverlay");
     if (overlay) {
@@ -882,45 +885,83 @@
     overlay.className = "mixtape-install-overlay";
     overlay.setAttribute("role", "dialog");
     overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "mixtapeInstallTitle");
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "mixtape-install-backdrop";
+    backdrop.addEventListener("click", hideMixtapeInstallOverlay);
+
+    const glow = document.createElement("div");
+    glow.className = "mixtape-install-glow";
 
     const card = document.createElement("div");
     card.className = "mixtape-install-card";
 
+    const kickerRow = document.createElement("div");
+    kickerRow.className = "mixtape-install-kicker-row";
+
+    const icon = document.createElement("div");
+    icon.className = "mixtape-install-icon";
+    icon.innerHTML = '<img src="/images/icon.svg" alt="Lollipop" />';
+
+    const kicker = document.createElement("p");
+    kicker.className = "mixtape-install-kicker";
+    kicker.textContent = "Finish in the app";
+
+    kickerRow.append(icon, kicker);
+
     const title = document.createElement("h2");
+    title.id = "mixtapeInstallTitle";
     title.className = "mixtape-install-title";
-    title.textContent = "Get the Lollipop app";
+    title.textContent = "Claim your mixtape";
 
     const body = document.createElement("p");
     body.className = "mixtape-install-body";
-    body.textContent = "Claiming a mixtape happens inside the Lollipop app. Open the app, or install it and tap again.";
+    body.textContent = "This tape was verified. Open Lollipop to save a permanent cassette copy to your collection.";
+
+    const note = document.createElement("p");
+    note.className = "mixtape-install-note";
+    note.innerHTML = '<span class="mixtape-install-note-icon">i</span>Claim links expire quickly to keep taps secure.';
 
     const actions = document.createElement("div");
     actions.className = "mixtape-install-actions";
 
-    const iosLink = document.createElement("a");
-    iosLink.className = "mixtape-install-button primary";
-    iosLink.href = APP_STORE_URL;
-    iosLink.target = "_blank";
-    iosLink.rel = "noopener";
-    iosLink.textContent = "Download for iOS";
+    const storeLink = document.createElement("a");
+    storeLink.className = "mixtape-install-store-button";
+    storeLink.href = APP_STORE_URL;
+    storeLink.target = "_blank";
+    storeLink.rel = "noopener";
+    storeLink.setAttribute("aria-label", "Download on the App Store");
+    storeLink.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.04 12.53c-.02-2.15 1.76-3.18 1.84-3.23-1.01-1.47-2.58-1.67-3.13-1.69-1.33-.14-2.6.78-3.28.78-.68 0-1.73-.76-2.84-.74-1.46.02-2.81.85-3.56 2.16-1.52 2.64-.39 6.55 1.09 8.69.72 1.04 1.58 2.22 2.71 2.17 1.09-.04 1.5-.7 2.82-.7 1.31 0 1.69.7 2.84.68 1.17-.02 1.92-1.06 2.64-2.11.83-1.21 1.17-2.38 1.19-2.44-.03-.01-2.29-.88-2.31-3.57ZM14.88 6.2c.6-.73 1.01-1.74.9-2.75-.87.03-1.93.58-2.56 1.31-.56.65-1.05 1.68-.92 2.67.97.08 1.97-.5 2.58-1.23Z"/></svg>' +
+      '<span class="mixtape-install-store-button-copy">' +
+        '<span class="mixtape-install-store-button-eyebrow">Download on the</span>' +
+        '<span class="mixtape-install-store-button-name">App Store</span>' +
+      '</span>';
 
-    const androidLink = document.createElement("a");
-    androidLink.className = "mixtape-install-button secondary";
-    androidLink.href = ANDROID_STORE_URL;
-    androidLink.target = "_blank";
-    androidLink.rel = "noopener";
-    androidLink.textContent = "Download for Android";
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.className = "mixtape-install-button primary";
+    openButton.textContent = "Open Lollipop App";
+    openButton.addEventListener("click", () => {
+      hideMixtapeInstallOverlay();
+      openMixtapeClaimBar();
+    });
 
-    const closeBtn = document.createElement("button");
-    closeBtn.type = "button";
-    closeBtn.className = "mixtape-install-close";
-    closeBtn.textContent = "Not now";
-    closeBtn.addEventListener("click", () => overlay.classList.add("hidden"));
+    const tapAgainButton = document.createElement("button");
+    tapAgainButton.type = "button";
+    tapAgainButton.className = "mixtape-install-button secondary";
+    tapAgainButton.textContent = "I’ll tap again";
+    tapAgainButton.addEventListener("click", hideMixtapeInstallOverlay);
 
-    actions.append(iosLink, androidLink, closeBtn);
-    card.append(title, body, actions);
-    overlay.appendChild(card);
+    actions.append(storeLink, openButton, tapAgainButton);
+    card.append(kickerRow, title, body, note, actions);
+    overlay.append(backdrop, glow, card);
     els.app.appendChild(overlay);
+  }
+
+  function hideMixtapeInstallOverlay() {
+    document.getElementById("mixtapeInstallOverlay")?.classList.add("hidden");
   }
 
   /* ── Events ── */
